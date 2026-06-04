@@ -180,6 +180,12 @@ try {
   }
 
   const portalContext = await browser.newContext({ viewport: { width: 1280, height: 820 } });
+  await portalContext.addInitScript(
+    ({ storageKey, state }) => {
+      window.localStorage.setItem(storageKey, JSON.stringify(state));
+    },
+    { storageKey: STORAGE_KEY, state: seedState }
+  );
   for (const portal of portalChecks) {
     const page = await portalContext.newPage();
     page.on("console", (message) => {

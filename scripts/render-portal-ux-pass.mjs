@@ -124,7 +124,7 @@ try {
 
   await page.goto(APP_URL, { waitUntil: "domcontentloaded", timeout: 25_000 });
   await page.getByRole("heading", { name: "Bliss Planner Dashboard" }).waitFor({ timeout: 20_000 });
-  await page.getByText("Sample Caterer").waitFor({ timeout: 10_000 });
+  await page.getByText("Sample Caterer").first().waitFor({ timeout: 10_000 });
   await page.getByText("Team and portal access").waitFor({ timeout: 10_000 });
   addCheck("Planner dashboard with sample client/vendor records", "PASS", "Dashboard rendered seeded planner workflow on live Render.");
 
