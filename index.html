@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#173c3a" />
+    <title>Bliss Planner Dashboard</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="rail" aria-label="Primary navigation">
+        <div class="brand" aria-label="Bliss Planner">
+          <span class="brand-mark">V</span>
+          <span class="brand-name">Bliss Planner</span>
+        </div>
+        <nav class="rail-nav">
+          <button class="nav-item active" type="button" data-tooltip="Dashboard">
+            <span data-icon="layout"></span>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-item" type="button" data-tooltip="Portfolio">
+            <span data-icon="rings"></span>
+            <span>Portfolio</span>
+          </button>
+          <button class="nav-item" type="button" data-tooltip="Vendors">
+            <span data-icon="vendor"></span>
+            <span>Vendors</span>
+          </button>
+          <button class="nav-item" type="button" data-tooltip="Guests">
+            <span data-icon="guests"></span>
+            <span>Guests</span>
+          </button>
+          <button class="nav-item" type="button" data-tooltip="Finance">
+            <span data-icon="wallet"></span>
+            <span>Finance</span>
+          </button>
+          <button class="nav-item" type="button" data-tooltip="Settings">
+            <span data-icon="settings"></span>
+            <span>Settings</span>
+          </button>
+        </nav>
+        <div class="rail-footer">
+          <span class="signal-dot"></span>
+          <span>Offline-ready</span>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="section-label">Global planning cockpit</p>
+            <h1>Wedding operations dashboard</h1>
+          </div>
+          <div class="top-actions">
+            <label class="search-field">
+              <span data-icon="search"></span>
+              <input id="searchInput" type="search" placeholder="Search weddings, vendors, guests" />
+            </label>
+            <button class="icon-button" type="button" aria-label="Notifications">
+              <span data-icon="bell"></span>
+            </button>
+            <button class="primary-button" type="button">
+              <span data-icon="plus"></span>
+              New brief
+            </button>
+          </div>
+        </header>
+
+        <section class="portfolio-strip" aria-label="Active wedding portfolio">
+          <div class="strip-heading">
+            <p class="section-label">Active portfolio</p>
+            <div class="segmented" role="tablist" aria-label="Wedding filter">
+              <button class="selected" type="button" data-filter="all">All</button>
+              <button type="button" data-filter="destination">Destination</button>
+              <button type="button" data-filter="culture">Culture-led</button>
+            </div>
+          </div>
+          <div id="weddingCards" class="wedding-cards"></div>
+        </section>
+
+        <section class="dashboard-grid">
+          <div class="panel planning-panel">
+            <div class="panel-header">
+              <div>
+                <p class="section-label">Linked plan</p>
+                <h2 id="selectedWeddingTitle">Planning matrix</h2>
+              </div>
+              <button class="ghost-button" type="button" id="syncPlanButton">
+                <span data-icon="refresh"></span>
+                Sync plan
+              </button>
+            </div>
+
+            <div class="metric-grid" id="metricGrid"></div>
+
+            <div class="timeline-wrap">
+              <div class="timeline-head">
+                <h3>Milestone runway</h3>
+                <span id="timelineSummary"></span>
+              </div>
+              <div id="timeline" class="timeline"></div>
+            </div>
+
+            <div class="schema-map">
+              <div>
+                <p class="section-label">Interconnected schema</p>
+                <h3>One change updates every operation</h3>
+              </div>
+              <div class="node-map" aria-label="Data relationship map">
+                <button class="schema-node root" type="button" data-node="wedding">Wedding</button>
+                <button class="schema-node" type="button" data-node="guests">Guests</button>
+                <button class="schema-node" type="button" data-node="vendors">Vendors</button>
+                <button class="schema-node" type="button" data-node="budget">Budget</button>
+                <button class="schema-node" type="button" data-node="culture">Culture</button>
+                <button class="schema-node" type="button" data-node="logistics">Logistics</button>
+              </div>
+              <p id="schemaInsight" class="schema-insight"></p>
+            </div>
+          </div>
+
+          <aside class="side-stack">
+            <div class="panel client-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="section-label">Client experience</p>
+                  <h2>Portal readiness</h2>
+                </div>
+                <span id="portalScore" class="score-chip"></span>
+              </div>
+              <div id="clientTasks" class="client-tasks"></div>
+            </div>
+
+            <div class="panel risk-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="section-label">Contingency desk</p>
+                  <h2>Risks to resolve</h2>
+                </div>
+                <button class="icon-button small" type="button" aria-label="Open risk settings">
+                  <span data-icon="settings"></span>
+                </button>
+              </div>
+              <div id="riskList" class="risk-list"></div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="operations-band">
+          <div class="panel vendor-panel">
+            <div class="panel-header">
+              <div>
+                <p class="section-label">Vendor, venue, catering, decor</p>
+                <h2>Operations board</h2>
+              </div>
+              <div class="view-switch">
+                <button class="active" type="button" data-view="vendor">Vendor view</button>
+                <button type="button" data-view="business">Business view</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel run-panel">
+            <div class="panel-header compact">
+              <div>
+                <p class="section-label">Day-of control</p>
+                <h2>Run sheet</h2>
+              </div>
+              <span id="timezoneLabel" class="muted-chip"></span>
+            </div>
+            <div id="runSheet" class="run-sheet"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

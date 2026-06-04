@@ -1,0 +1,47 @@
+{
+  "appId": "com.wovops.planner",
+  "productName": "WovOpsPlanner",
+  "copyright": "WovOps LLC",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "desktop/**/*",
+    "public/**/*",
+    "src/**/*",
+    "scripts/**/*",
+    "next.config.mjs",
+    ".next/**/*",
+    "node_modules/**/*",
+    "package.json",
+    "next-env.d.ts",
+    "tsconfig.json"
+  ],
+  "asar": false,
+  "asarUnpack": [
+    "node_modules/next/**/*",
+    "node_modules/react/**/*",
+    "node_modules/react-dom/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "public",
+      "to": "public"
+    }
+  ],
+  "mac": {
+    "category": "public.app-category.productivity",
+    "icon": "public/icons/wovops-icon-512.png",
+    "target": ["dmg", "zip"]
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "public/icons/wovops-icon-512.png",
+    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+  },
+  "linux": {
+    "target": ["AppImage", "tar.gz"],
+    "category": "Office",
+    "icon": "public/icons/wovops-icon-512.png"
+  }
+}

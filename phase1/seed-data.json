@@ -1,0 +1,478 @@
+{
+  "planners": [
+    {
+      "id": "planner_001",
+      "name": "Aster Bellamy",
+      "email": "planner@wovops.example",
+      "phone": "+1-555-0111",
+      "company": "Aster Knot Studio",
+      "settings": {
+        "baseCurrency": "USD",
+        "bookingCurrency": "USD",
+        "displayCurrency": "USD",
+        "timezone": "Asia/Kolkata",
+        "locale": "en-IN",
+        "dateFormat": "DD/MM/YYYY",
+        "timeFormat": "24h",
+        "distanceUnit": "km",
+        "weightUnit": "kg",
+        "taxMode": "INCLUSIVE",
+        "taxRatePercent": 0,
+        "defaultLeadTimeDays": 14,
+        "rsvpReminderOffset": 7,
+        "weekStartDay": 1
+      }
+    }
+  ],
+  "clients": [
+    {
+      "id": "client_kyoto_001",
+      "plannerId": "planner_001",
+      "firstName": "Maya",
+      "lastName": "Sato",
+      "email": "maya.sato+planner@example.com",
+      "phone": "+81-90-1111-0101",
+      "country": "Japan",
+      "homeCity": "Kyoto"
+    },
+    {
+      "id": "client_marrakech_001",
+      "plannerId": "planner_001",
+      "firstName": "Amina",
+      "lastName": "Benali",
+      "email": "amina.benali@example.com",
+      "phone": "+212-6-1111-0202",
+      "country": "Morocco",
+      "homeCity": "Marrakech"
+    }
+  ],
+  "venues": [
+    {
+      "id": "venue_kyoto_001",
+      "plannerId": "planner_001",
+      "name": "Sora Garden Hall",
+      "addressLine1": "1 Sakuragi Lane",
+      "city": "Kyoto",
+      "country": "Japan",
+      "capacity": 260,
+      "defaultSetup": "seated_stage",
+      "contactEmail": "bookings@soragarden.jp",
+      "contactPhone": "+81-75-1234-8899",
+      "constraints": [
+        "No music past 22:00",
+        "Outdor fallback required for rain"
+      ]
+    }
+  ],
+  "cultureProfiles": [
+    {
+      "id": "culture_shinto",
+      "code": "shinto",
+      "name": "Shinto Ceremony",
+      "region": "Japan",
+      "requiredRituals": [
+        "Shubatsu",
+        "Kagami biraki"
+      ],
+      "etiquetteNotes": [
+        "Respect envelope customs",
+        "Keep ceremonial sequence respectful"
+      ],
+      "giftNotes": [
+        "Avoid certain number combinations seen as unlucky"
+      ],
+      "dressGuide": "traditional + modern hybrid acceptable"
+    },
+    {
+      "id": "culture_maghreb",
+      "code": "maghreb",
+      "name": "Moroccan Cultural Wedding",
+      "region": "North Africa",
+      "requiredRituals": [
+        "Tea and storytelling sequence"
+      ],
+      "etiquetteNotes": [
+        "Family seating and elder acknowledgment protocol"
+      ],
+      "giftNotes": [
+        "Avoid items with religious restriction in certain regions"
+      ],
+      "dressGuide": "traditional layering with climate-appropriate fabrics"
+    }
+  ],
+  "weddings": [
+    {
+      "id": "wed_kyoto_001",
+      "plannerId": "planner_001",
+      "clientId": "client_kyoto_001",
+      "title": "Maya & Kenji",
+      "shortCode": "MK-2026",
+      "eventStart": "2026-11-14T08:30:00.000Z",
+      "eventEnd": "2026-11-14T16:00:00.000Z",
+      "timezone": "Asia/Tokyo",
+      "status": "PLANNING",
+      "weddingType": "DESTINATION_CULTURAL",
+      "riskLevel": "MEDIUM",
+      "guestTarget": 220,
+      "currency": "JPY",
+      "destinationLabel": "Kyoto, Japan",
+      "venueId": "venue_kyoto_001",
+      "countryCode": "JP",
+      "notes": "Shinto sequence requires ceremony block approvals",
+      "destinationProfile": {
+        "countryCode": "JP",
+        "visaRequired": false,
+        "visaNotes": null,
+        "seasonality": "autumn_peak",
+        "weatherNotes": "Monitor rain probability between 17:00-20:00",
+        "travelGuidance": "Airport transfer windows must account for traffic"
+      },
+      "cultures": ["culture_shinto"],
+      "tasks": [
+        {
+          "id": "task_kyoto_001",
+          "title": "Finalize caterer menu with meal diversity by dietary profile",
+          "owner": "coordinator",
+          "priority": "HIGH",
+          "status": "IN_PROGRESS",
+          "dueAt": "2026-10-01T00:00:00.000Z",
+          "notes": "Link meal mix to guest groups for totals",
+          "impacts": [
+            {
+              "impactArea": "GUESTS",
+              "description": "Guest meal preferences drive totals and catering order quantities."
+            },
+            {
+              "impactArea": "BUDGET",
+              "description": "Menu selection changes cost by 8-14%."
+            },
+            {
+              "impactArea": "VENDORS",
+              "description": "Vendor contract milestones may need date shift."
+            }
+          ]
+        },
+        {
+          "id": "task_kyoto_002",
+          "title": "Confirm Shinto ceremony protocol with officiant",
+          "owner": "planner",
+          "priority": "CRITICAL",
+          "status": "BLOCKED",
+          "dueAt": "2026-10-10T00:00:00.000Z",
+          "notes": "Blocks final timeline release",
+          "dependsOn": ["task_kyoto_001"],
+          "impacts": [
+            {
+              "impactArea": "TIMELINE",
+              "description": "Ceremony block timing and guest flow will update after confirmation."
+            },
+            {
+              "impactArea": "RISK",
+              "description": "Potential cultural miss-risk until confirmed."
+            }
+          ]
+        }
+      ],
+      "guestGroups": [
+        {
+          "id": "guest_group_kyoto_001",
+          "name": "Family (Japan)",
+          "count": 61,
+          "vegetarian": 8,
+          "standard": 40,
+          "seafood": 13,
+          "roomingNeed": 45
+        },
+        {
+          "id": "guest_group_kyoto_002",
+          "name": "Family (India)",
+          "count": 44,
+          "vegetarian": 20,
+          "standard": 24,
+          "seafood": 0,
+          "roomingNeed": 30
+        }
+      ],
+      "budget": {
+        "currency": "JPY",
+        "exchangeFrom": "USD",
+        "exchangeRate": 150.25,
+        "lines": [
+          {
+            "category": "VENUE",
+            "planned": 160000,
+            "actual": 96000
+          },
+          {
+            "category": "CATERING",
+            "planned": 98000,
+            "actual": 32000
+          },
+          {
+            "category": "DECORATION",
+            "planned": 52000,
+            "actual": 18000
+          },
+          {
+            "category": "TRAVEL",
+            "planned": 70000,
+            "actual": 7000
+          }
+        ]
+      },
+      "riskSignals": [
+        {
+          "area": "LOGISTICS",
+          "level": "MEDIUM",
+          "title": "Rain window near event time",
+          "description": "Outdoor backup required for ceremony entrance.",
+          "resolved": false,
+          "suggestedAction": "Lock covered alternate path by 2026-10-31."
+        }
+      ],
+      "vendors": [
+        {
+          "vendorId": "vendor_venue_001",
+          "name": "Sora Garden Hall Ops",
+          "type": "VENUE",
+          "email": "bookings@soragarden.jp",
+          "phone": "+81-75-1234-8899",
+          "currency": "JPY",
+          "contractValue": 160000,
+          "status": "ACTIVE",
+          "payments": [
+            {
+              "label": "Deposit",
+              "amount": 64000,
+              "dueDate": "2026-08-20T00:00:00.000Z",
+              "status": "PAID"
+            },
+            {
+              "label": "Balance",
+              "amount": 96000,
+              "dueDate": "2026-11-01T00:00:00.000Z",
+              "status": "PENDING"
+            }
+          ]
+        },
+        {
+          "vendorId": "vendor_caterer_001",
+          "name": "Miyabi Cuisine",
+          "type": "CATERING",
+          "email": "ops@miyabicuisine.jp",
+          "phone": "+81-75-4444-1010",
+          "currency": "JPY",
+          "contractValue": 98000,
+          "status": "ACTIVE",
+          "payments": [
+            {
+              "label": "Deposit",
+              "amount": 30000,
+              "dueDate": "2026-09-25T00:00:00.000Z",
+              "status": "PAID"
+            },
+            {
+              "label": "Final",
+              "amount": 68000,
+              "dueDate": "2026-11-01T00:00:00.000Z",
+              "status": "PENDING"
+            }
+          ]
+        }
+      ],
+      "documents": [
+        {
+          "kind": "CONTRACT",
+          "title": "Venue contract PDF",
+          "filePath": "/local/phase1/docs/venue_kyoto_contract_v1.pdf",
+          "isClientFacing": true
+        }
+      ],
+      "timeline": [
+        {
+          "kind": "MILESTONE",
+          "title": "Guest transport manifest finalized",
+          "status": "UPCOMING",
+          "startAt": "2026-11-14T06:00:00.000Z",
+          "sequence": 1,
+          "owner": "operations"
+        },
+        {
+          "kind": "DAY_OF",
+          "title": "Ceremony start",
+          "status": "UPCOMING",
+          "startAt": "2026-11-14T08:30:00.000Z",
+          "sequence": 2,
+          "owner": "coordinator"
+        }
+      ],
+      "runSheet": [
+        {
+          "slotAt": "2026-11-14T07:00:00.000Z",
+          "personRole": "Bride party",
+          "action": "Final makeup and transport check",
+          "owner": "coordinator",
+          "confirmed": true
+        },
+        {
+          "slotAt": "2026-11-14T08:00:00.000Z",
+          "personRole": "Ceremony team",
+          "action": "Rehearsal walk-through",
+          "owner": "ops lead",
+          "confirmed": true
+        }
+      ]
+    },
+    {
+      "id": "wed_marrakech_001",
+      "plannerId": "planner_001",
+      "clientId": "client_marrakech_001",
+      "title": "Amina & Lucas",
+      "shortCode": "AL-2027",
+      "eventStart": "2027-03-03T16:00:00.000Z",
+      "eventEnd": "2027-03-04T00:00:00.000Z",
+      "timezone": "Africa/Casablanca",
+      "status": "IN_PROGRESS",
+      "weddingType": "DESTINATION_CULTURAL",
+      "riskLevel": "HIGH",
+      "guestTarget": 180,
+      "currency": "MAD",
+      "destinationLabel": "Marrakech, Morocco",
+      "countryCode": "MA",
+      "notes": "Destination logistics are the largest risk group",
+      "destinationProfile": {
+        "countryCode": "MA",
+        "visaRequired": true,
+        "visaNotes": "Guest list includes 11 countries; validate stay windows",
+        "seasonality": "winter_peak",
+        "weatherNotes": "Afternoon wind can affect stage structures",
+        "travelGuidance": "Use local transfer partner for airport timing"
+      },
+      "cultures": ["culture_maghreb"],
+      "tasks": [
+        {
+          "id": "task_marrakech_001",
+          "title": "Collect passport and ID list for airport transfer vendor",
+          "owner": "planner",
+          "priority": "MEDIUM",
+          "status": "TODO",
+          "dueAt": "2026-12-10T00:00:00.000Z",
+          "notes": "Needed for transfer manifest and pre-checks",
+          "impacts": [
+            {
+              "impactArea": "LOGISTICS",
+              "description": "Shuttle planning and room pickup windows cannot be finalized."
+            },
+            {
+              "impactArea": "CLIENT_EXPERIENCE",
+              "description": "Guest arrival confidence depends on this deliverable."
+            }
+          ]
+        }
+      ],
+      "guestGroups": [
+        {
+          "id": "guest_group_marrakech_001",
+          "name": "Family and close friends",
+          "count": 92,
+          "vegetarian": 22,
+          "standard": 65,
+          "seafood": 5,
+          "roomingNeed": 40
+        }
+      ],
+      "budget": {
+        "currency": "MAD",
+        "exchangeFrom": "USD",
+        "exchangeRate": 9.98,
+        "lines": [
+          {
+            "category": "VENUE",
+            "planned": 92000,
+            "actual": 22000
+          },
+          {
+            "category": "TRANSPORT",
+            "planned": 38000,
+            "actual": 11000
+          },
+          {
+            "category": "CATERING",
+            "planned": 78000,
+            "actual": 0
+          }
+        ]
+      },
+      "riskSignals": [
+        {
+          "area": "TRAVEL",
+          "level": "HIGH",
+          "title": "Visa window validation",
+          "description": "Multi-country guest list requires staggered passport capture.",
+          "resolved": false,
+          "suggestedAction": "Create deadline and escalation flow for missing documents."
+        }
+      ],
+      "documents": [
+        {
+          "kind": "CHECKLIST",
+          "title": "Travel and document checklist",
+          "filePath": "/local/phase1/docs/marrakech_travel_checklist.xlsx",
+          "isClientFacing": true
+        }
+      ],
+      "timeline": [
+        {
+          "kind": "TRAVEL",
+          "title": "Arrival coordination confirmation",
+          "status": "UPCOMING",
+          "startAt": "2027-03-01T10:00:00.000Z",
+          "sequence": 1,
+          "owner": "operations"
+        }
+      ],
+      "runSheet": []
+    }
+  ],
+  "pipelineLeads": [
+    {
+      "id": "lead_001",
+      "plannerId": "planner_001",
+      "clientName": "Sofia & Mateo",
+      "email": "sofia.mateo+lead@example.com",
+      "phone": "+34-600-555-1212",
+      "source": "REFERRAL",
+      "status": "WON",
+      "projectedBudget": 450000,
+      "currency": "USD",
+      "destinationCity": "Cartagena",
+      "notes": "Lead converted into planning phase after deposit call."
+    },
+    {
+      "id": "lead_002",
+      "plannerId": "planner_001",
+      "clientName": "Corporate luxury referral",
+      "email": "events@luxurybrand.com",
+      "phone": "+34-700-555-1000",
+      "source": "VENDOR",
+      "status": "QUALIFIED",
+      "projectedBudget": 850000,
+      "currency": "USD",
+      "destinationCity": "Marrakech",
+      "notes": "Prefers vendor-managed transport model."
+    }
+  ],
+  "sync": {
+    "devices": [
+      {
+        "id": "device_001",
+        "plannerId": "planner_001",
+        "label": "Planner-MacBook-Pro",
+        "deviceFingerprint": "ab12-cd34-ef56-local",
+        "platform": "desktop",
+        "syncMode": "LOCAL_ONLY"
+      }
+    ],
+    "pendingOutbox": 38
+  }
+}

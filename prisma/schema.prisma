@@ -1,0 +1,819 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TaxMode {
+  INCLUSIVE
+  EXCLUSIVE
+}
+
+enum CurrencySource {
+  BASE
+  BOOKING
+  VENDOR
+  ALTERNATE
+}
+
+enum SyncState {
+  LOCAL_ONLY
+  PENDING
+  SYNCED
+  CONFLICT
+  FAILED
+}
+
+enum SyncOperation {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum LocalSyncMode {
+  LOCAL_ONLY
+  LOCAL_FIRST
+  OPT_IN_SYNC
+}
+
+enum SyncResolution {
+  PENDING
+  LOCAL_WINS
+  REMOTE_WINS
+  MERGED
+  SKIPPED
+}
+
+enum WeddingStatus {
+  DRAFT
+  PLANNING
+  IN_PROGRESS
+  CLIENT_REVIEW
+  READY
+  IN_EXECUTION
+  COMPLETED
+  ARCHIVED
+}
+
+enum WeddingType {
+  DESTINATION
+  TRADITIONAL
+  CULTURAL
+  DESTINATION_CULTURAL
+  MULTI_DAY
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VendorType {
+  VENUE
+  CATERING
+  DECORATION
+  PHOTOGRAPHY
+  VIDEO
+  MUSIC
+  TRANSPORT
+  FLORAL
+  BEAUTY
+  CONTRACTOR
+  CONSULTANT
+  OTHER
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  CANCELLED
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  ACTIVE
+  COMPLETED
+  VOID
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELED
+}
+
+enum RSVPStatus {
+  INVITED
+  YES
+  NO
+  MAYBE
+  NO_RESPONSE
+}
+
+enum ImpactArea {
+  GUESTS
+  VENDORS
+  BUDGET
+  TIMELINE
+  CLIENT_EXPERIENCE
+  LOGISTICS
+  DESTINATION
+  CULTURE
+  CONTRACTS
+}
+
+enum BudgetCategory {
+  VENUE
+  CATERING
+  DECORATION
+  PHOTOGRAPHY
+  VIDEOGRAPHY
+  MUSIC
+  TRANSPORT
+  ATTIRE
+  GUEST_EXPERIENCE
+  ALCOHOL
+  LICENSE
+  STAFF
+  ADMIN
+  MARKETING
+  OTHER
+}
+
+enum TimelineKind {
+  MILESTONE
+  TASK
+  TRAVEL
+  SHUTTLE
+  RITUAL
+  DAY_OF
+  POST_EVENT
+}
+
+enum TimelineStatus {
+  UPCOMING
+  IN_PROGRESS
+  DONE
+  MISSED
+  CANCELLED
+}
+
+enum DocumentKind {
+  CONTRACT
+  FLOORPLAN
+  MENUS
+  TRAVEL
+  CHECKLIST
+  INSURANCE
+  RECEIPT
+  PERMIT
+  CLIENT_NOTE
+  OTHER
+}
+
+enum LeadSource {
+  REFERRAL
+  SEARCH
+  SOCIAL
+  VENDOR
+  PARTNERSHIP
+  CAMPAIGN
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  QUALIFIED
+  QUOTING
+  WON
+  LOST
+  ARCHIVED
+}
+
+model Planner {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  phone     String?
+  company   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  revision       Int    @default(1)
+  syncState      SyncState @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt   DateTime?
+  deletedAt      DateTime?
+
+  settings       PlannerSettings?
+  weddings       Wedding[]
+  vendors        Vendor[]
+  clients        Client[]
+  leads          PipelineLead[]
+  documents      Document[]
+  syncDevices    SyncDevice[]
+  syncOutbox     SyncOutbox[]
+}
+
+model PlannerSettings {
+  id                   String      @id @default(cuid())
+  plannerId            String      @unique
+  planner              Planner     @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  baseCurrency         String      @db.Char(3)
+  bookingCurrency      String      @db.Char(3)
+  displayCurrency      String      @db.Char(3)
+  timezone             String
+  locale               String
+  dateFormat           String
+  timeFormat           String      @default("24h")
+  distanceUnit         String      @default("km")
+  weightUnit           String      @default("kg")
+  taxMode              TaxMode     @default(INCLUSIVE)
+  taxRatePercent       Float       @default(0)
+  defaultLeadTimeDays   Int        @default(14)
+  rsvpReminderOffset   Int         @default(7)
+  weekStartDay         Int         @default(1)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  revision    Int       @default(1)
+  syncState   SyncState @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  plannerId      String
+  planner        Planner  @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  firstName      String
+  lastName       String
+  email          String
+  phone          String?
+  country        String?
+  homeCity       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  revision       Int      @default(1)
+  syncState      SyncState @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt   DateTime?
+  deletedAt      DateTime?
+
+  weddings       Wedding[]
+
+  @@index([plannerId])
+  @@index([email])
+}
+
+model Wedding {
+  id                    String         @id @default(cuid())
+  plannerId             String
+  planner               Planner        @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  clientId              String?
+  client                Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  title                 String
+  shortCode             String?
+  eventStart            DateTime
+  eventEnd              DateTime
+  timezone              String
+  status                WeddingStatus  @default(PLANNING)
+  weddingType           WeddingType    @default(TRADITIONAL)
+  riskLevel             RiskLevel      @default(LOW)
+  guestTarget           Int
+  currency              String         @db.Char(3)
+  notes                 String?
+  destinationLabel      String
+  venueId               String?
+  venue                 Venue?         @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  countryCode           String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  revision              Int            @default(1)
+  syncState             SyncState      @default(LOCAL_ONLY)
+  updatedByDevice       String?
+  lastSyncedAt          DateTime?
+  deletedAt             DateTime?
+  isArchived            Boolean        @default(false)
+
+  tasks                 Task[]
+  budgets               Budget[]
+  guestGroups           GuestGroup[]
+  guests                Guest[]
+  contracts             VendorContract[]
+  documents             Document[]
+  timelineItems         TimelineItem[]
+  riskSignals           RiskSignal[]
+  cultures              WeddingCulture[]
+  destinationProfile    DestinationProfile?
+  taskImpacts           TaskImpact[]
+  runSheets             RunSheetItem[]
+  pipelineLead          PipelineLead?
+
+  @@index([plannerId, status])
+  @@index([eventStart])
+  @@index([isArchived])
+}
+
+model DestinationProfile {
+  id              String    @id @default(cuid())
+  weddingId       String    @unique
+  wedding         Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  countryCode     String
+  visaRequired    Boolean   @default(false)
+  visaNotes       String?
+  seasonality     String?
+  weatherNotes    String?
+  travelGuidance  String?
+  customRisks     Json?
+  customs         Json?
+  localReminders  Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  revision        Int       @default(1)
+  syncState       SyncState @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt    DateTime?
+}
+
+model CultureProfile {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  name            String
+  region          String
+  requiredRituals Json?
+  etiquetteNotes  Json?
+  giftNotes       Json?
+  dressGuide      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  revision        Int      @default(1)
+  syncState       SyncState @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt    DateTime?
+
+  weddings        WeddingCulture[]
+}
+
+model WeddingCulture {
+  id              String @id @default(cuid())
+  weddingId       String
+  wedding         Wedding @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  cultureProfileId String
+  cultureProfile  CultureProfile @relation(fields: [cultureProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([weddingId, cultureProfileId])
+}
+
+model Venue {
+  id              String   @id @default(cuid())
+  plannerId       String?
+  planner         Planner? @relation(fields: [plannerId], references: [id], onDelete: SetNull)
+  name            String
+  addressLine1    String
+  addressLine2    String?
+  city            String
+  country         String
+  timezone        String?
+  capacity        Int
+  defaultSetup    String?
+  contactEmail    String?
+  contactPhone    String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  revision        Int      @default(1)
+  syncState       SyncState @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt    DateTime?
+  deletedAt       DateTime?
+
+  weddings        Wedding[]
+  constraints     VenueConstraint[]
+
+  @@index([city, country])
+}
+
+model VenueConstraint {
+  id        String @id @default(cuid())
+  venueId   String
+  venue     Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  label     String
+  value     String?
+  createdAt DateTime @default(now())
+}
+
+model Vendor {
+  id            String      @id @default(cuid())
+  plannerId     String
+  planner       Planner     @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  name          String
+  vendorType    VendorType
+  email         String
+  phone         String?
+  website       String?
+  baseCurrency  String      @db.Char(3)
+  country       String?
+  city          String?
+  cityCode      String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  revision      Int         @default(1)
+  syncState     SyncState   @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt  DateTime?
+  deletedAt     DateTime?
+
+  contracts     VendorContract[]
+  documents     Document[]
+
+  @@index([plannerId, vendorType])
+}
+
+model VendorContract {
+  id           String         @id @default(cuid())
+  plannerId    String
+  planner      Planner        @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  weddingId    String
+  wedding      Wedding        @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  vendorId     String
+  vendor       Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  title        String
+  status       ContractStatus @default(DRAFT)
+  currency     String         @db.Char(3)
+  contractValue Float
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  taxSource    CurrencySource @default(VENDOR)
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  revision     Int            @default(1)
+  syncState    SyncState      @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+  deletedAt    DateTime?
+
+  payments     Payment[]
+
+  @@index([weddingId, status])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  weddingId     String
+  wedding       Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  contractId    String
+  contract      VendorContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  label         String
+  amount        Float
+  currency      String       @db.Char(3)
+  dueDate       DateTime
+  paidDate      DateTime?
+  status        PaymentStatus @default(PENDING)
+  reference     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  revision      Int          @default(1)
+  syncState     SyncState    @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt  DateTime?
+
+  @@index([contractId])
+}
+
+model Task {
+  id          String        @id @default(cuid())
+  weddingId   String
+  wedding     Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  title       String
+  owner       String?
+  priority    TaskPriority  @default(MEDIUM)
+  status      TaskStatus    @default(TODO)
+  dueAt       DateTime?
+  completedAt DateTime?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  revision    Int           @default(1)
+  syncState   SyncState     @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+  deletedAt   DateTime?
+
+  dependsOn   TaskDependency[] @relation("TaskDependsOn")
+  blockedBy   TaskDependency[] @relation("TaskDependencyFor")
+  impacts     TaskImpact[]
+
+  @@index([weddingId, status])
+}
+
+model TaskDependency {
+  id                 String  @id @default(cuid())
+  taskId             String
+  dependsOnTaskId    String
+  task               Task    @relation("TaskDependsOn", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTask       Task    @relation("TaskDependencyFor", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+  createdAt          DateTime @default(now())
+
+  @@unique([taskId, dependsOnTaskId])
+  @@index([taskId])
+  @@index([dependsOnTaskId])
+}
+
+model TaskImpact {
+  id         String      @id @default(cuid())
+  weddingId  String
+  wedding    Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  taskId     String?
+  task       Task?       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  impactArea ImpactArea
+  affectedId String?
+  description String
+  createdAt  DateTime @default(now())
+}
+
+model Budget {
+  id                 String      @id @default(cuid())
+  weddingId          String
+  wedding            Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  currency           String      @db.Char(3)
+  exchangeFrom       String      @db.Char(3)
+  exchangeRate       Float?
+  versionName        String      @default("default")
+  plannedTotal       Float?
+  actualTotal        Float?
+  notes              String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  revision           Int         @default(1)
+  syncState          SyncState   @default(LOCAL_ONLY)
+  updatedByDevice    String?
+  lastSyncedAt       DateTime?
+  deletedAt          DateTime?
+
+  lines              BudgetLine[]
+
+  @@index([weddingId])
+}
+
+model BudgetLine {
+  id          String         @id @default(cuid())
+  budgetId    String
+  budget      Budget         @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  category    BudgetCategory
+  categoryLabel String?
+  planned     Float          @default(0)
+  actual      Float          @default(0)
+  currency    String         @db.Char(3)
+  notes       String?
+  isForecast  Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  revision    Int            @default(1)
+  syncState   SyncState      @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+}
+
+model GuestGroup {
+  id                 String    @id @default(cuid())
+  weddingId          String
+  wedding            Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  name               String
+  count              Int       @default(0)
+  vegetarian         Int       @default(0)
+  standard           Int       @default(0)
+  seafood            Int       @default(0)
+  roomingNeeded      Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  revision           Int       @default(1)
+  syncState          SyncState @default(LOCAL_ONLY)
+  updatedByDevice    String?
+  lastSyncedAt       DateTime?
+  deletedAt          DateTime?
+
+  @@index([weddingId])
+}
+
+model Guest {
+  id           String     @id @default(cuid())
+  weddingId    String
+  wedding      Wedding    @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  groupId      String?
+  group        GuestGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  firstName    String
+  lastName     String?
+  email        String?
+  phone        String?
+  rsvpStatus   RSVPStatus @default(NO_RESPONSE)
+  plusOneCount  Int        @default(0)
+  passportRequired Boolean  @default(false)
+  roomingNeeded Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  revision     Int        @default(1)
+  syncState    SyncState  @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+  deletedAt    DateTime?
+
+  @@index([weddingId, rsvpStatus])
+}
+
+model TimelineItem {
+  id            String        @id @default(cuid())
+  weddingId     String
+  wedding       Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  kind          TimelineKind
+  title         String
+  description   String?
+  status        TimelineStatus @default(UPCOMING)
+  startAt       DateTime
+  endAt         DateTime?
+  sequence      Int           @default(0)
+  owner         String?
+  location      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  revision      Int           @default(1)
+  syncState     SyncState     @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt  DateTime?
+  deletedAt     DateTime?
+}
+
+model RunSheetItem {
+  id           String    @id @default(cuid())
+  weddingId    String
+  wedding      Wedding   @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  slotAt       DateTime
+  personRole   String?
+  action       String
+  owner        String?
+  confirmed    Boolean   @default(false)
+  dependencies Json?
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  revision     Int       @default(1)
+  syncState    SyncState @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+}
+
+model RiskSignal {
+  id           String     @id @default(cuid())
+  weddingId    String
+  wedding      Wedding    @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  area         ImpactArea
+  level        RiskLevel
+  title        String
+  description  String
+  resolved     Boolean    @default(false)
+  resolvedAt   DateTime?
+  suggestedAction String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  revision     Int        @default(1)
+  syncState    SyncState  @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+}
+
+model Document {
+  id          String       @id @default(cuid())
+  plannerId   String?
+  planner     Planner?     @relation(fields: [plannerId], references: [id], onDelete: SetNull)
+  weddingId   String?
+  wedding     Wedding?     @relation(fields: [weddingId], references: [id], onDelete: SetNull)
+  vendorId    String?
+  vendor      Vendor?      @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  kind        DocumentKind
+  title       String
+  filePath    String
+  mimeType    String?
+  isClientFacing Boolean    @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  revision    Int          @default(1)
+  syncState   SyncState    @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt DateTime?
+}
+
+model PipelineLead {
+  id              String        @id @default(cuid())
+  plannerId       String
+  planner         Planner       @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  weddingId       String?       @unique
+  wedding         Wedding?      @relation(fields: [weddingId], references: [id], onDelete: SetNull)
+  clientName      String
+  email           String
+  phone           String?
+  source          LeadSource
+  status          LeadStatus    @default(NEW)
+  projectedBudget Float?
+  currency        String?       @db.Char(3)
+  preferredDate   DateTime?
+  destinationCity String?
+  notes           String?
+  nextAction      String?
+  confidenceScore Float         @default(0.5)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  revision        Int           @default(1)
+  syncState       SyncState     @default(LOCAL_ONLY)
+  updatedByDevice String?
+  lastSyncedAt    DateTime?
+}
+
+model SyncDevice {
+  id              String      @id @default(cuid())
+  plannerId       String
+  planner         Planner     @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  label           String
+  deviceFingerprint String
+  platform        String
+  os              String?
+  appVersion      String?
+  syncMode        LocalSyncMode @default(LOCAL_ONLY)
+  lastSeenAt      DateTime    @default(now())
+  firstSeenAt     DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       @updatedAt
+
+  cursors         SyncCursor[]
+  outbox          SyncOutbox[]
+  conflicts       SyncConflict[]
+}
+
+model SyncCursor {
+  id          String  @id @default(cuid())
+  plannerId   String
+  deviceId    String
+  device      SyncDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  scope       String
+  cursor      Int
+  lastCursorAt DateTime
+  sourceRevision Int
+  updatedAt   DateTime @updatedAt
+
+  @@unique([plannerId, deviceId, scope])
+}
+
+model SyncOutbox {
+  id            String        @id @default(cuid())
+  plannerId     String
+  planner       Planner       @relation(fields: [plannerId], references: [id], onDelete: Cascade)
+  deviceId      String
+  device        SyncDevice    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  entityType    String
+  entityId      String
+  operation     SyncOperation
+  revision      Int
+  payload       Json
+  changedBy     String?
+  state         SyncState     @default(PENDING)
+  attempts      Int           @default(0)
+  nextRetryAt   DateTime?
+  lastError     String?
+  createdAt     DateTime      @default(now())
+  syncedAt      DateTime?
+}
+
+model SyncConflict {
+  id               String       @id @default(cuid())
+  plannerId        String
+  deviceId         String
+  device           SyncDevice   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  entityType       String
+  entityId         String
+  localRevision    Int
+  remoteRevision   Int
+  conflictPayload  Json
+  resolution      SyncResolution @default(PENDING)
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}

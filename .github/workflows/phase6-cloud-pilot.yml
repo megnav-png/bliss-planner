@@ -1,0 +1,42 @@
+name: phase6-cloud-pilot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run phase6 cloud pilot
+        env:
+          APP_HOST: 0.0.0.0
+          APP_PORT: 3002
+          WOVOPS_APP_URL: http://127.0.0.1:3002
+          WOVOPS_PILOT_SKIP_IPV6: true
+          WOVOPS_PILOT_SKIP_PRECHECK: true
+          WOVOPS_PILOT_ALLOW_HOST_ALIASES: false
+          WOVOPS_PILOT_FORCE_IPV4_LOOPBACK: true
+          WOVOPS_LOG_DIR: /tmp
+        run: npm run phase6:pilot:cloud
+
+      - name: Upload pilot report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase6-pilot-report
+          path: |
+            /tmp/wovops-phase6-pilot-*.json
+            /tmp/wovops-phase6-cloud-pilot.log
+            /tmp/wovops-dev.log
+          if-no-files-found: warn

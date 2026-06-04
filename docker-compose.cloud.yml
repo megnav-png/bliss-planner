@@ -1,0 +1,18 @@
+services:
+  wovops-pilot:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 3002
+      WOVOPS_APP_URL: http://127.0.0.1:3002
+      WOVOPS_PILOT_SKIP_IPV6: "true"
+      WOVOPS_PILOT_SKIP_PRECHECK: "true"
+      WOVOPS_PILOT_ALLOW_HOST_ALIASES: "false"
+      WOVOPS_PILOT_FORCE_IPV4_LOOPBACK: "true"
+      WOVOPS_LOG_DIR: /tmp
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./tmp:/tmp

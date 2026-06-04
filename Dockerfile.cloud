@@ -1,0 +1,19 @@
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+
+ENV APP_HOST=0.0.0.0
+ENV APP_PORT=3002
+ENV WOVOPS_PILOT_SKIP_IPV6=true
+ENV WOVOPS_PILOT_SKIP_PRECHECK=true
+ENV WOVOPS_PILOT_ALLOW_HOST_ALIASES=false
+ENV WOVOPS_PILOT_FORCE_IPV4_LOOPBACK=true
+ENV WOVOPS_APP_URL=http://127.0.0.1:3002
+
+EXPOSE 3002
+
+CMD ["bash", "/app/scripts/run-phase6-cloud.sh"]

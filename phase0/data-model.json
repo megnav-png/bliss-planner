@@ -1,0 +1,360 @@
+{
+  "planner": {
+    "id": "planner_001",
+    "name": "Aster Bellamy",
+    "email": "planner@wovops.example",
+    "preferences": {
+      "baseCurrency": "USD",
+      "defaultBudgetCurrency": "USD",
+      "displayCurrency": "USD",
+      "timezone": "Asia/Kolkata",
+      "locale": "en-IN",
+      "dateFormat": "DD/MM/YYYY",
+      "timeFormat": "24h",
+      "distanceUnit": "km",
+      "weightUnit": "kg",
+      "taxModel": "inclusive",
+      "language": "en"
+    },
+    "units": {
+      "defaultVenueCapacityBuffer": 1.1,
+      "defaultLeadTimeDays": 14,
+      "defaultRSVPCutoffBufferDays": 21
+    },
+    "createdAt": "2026-01-08T00:00:00.000Z",
+    "updatedAt": "2026-01-10T10:00:00.000Z"
+  },
+  "weddings": [
+    {
+      "id": "wed_kyoto_001",
+      "plannerId": "planner_001",
+      "title": "Maya & Kenji",
+      "date": "2026-11-14T08:30:00.000Z",
+      "venueId": "venue_kyoto_001",
+      "destination": "Kyoto, Japan",
+      "cultureProfileIds": ["culture_shinto", "culture_japanese_wed"],
+      "guestTarget": 220,
+      "status": "planning",
+      "timezone": "Asia/Tokyo",
+      "currency": "JPY",
+      "metrics": {
+        "rsvpYes": 142,
+        "rsvpPending": 43,
+        "cateringCommitted": 185,
+        "budgetPlanned": 480000,
+        "budgetSpent": 214000
+      },
+      "riskLevel": "medium",
+      "revision": 11,
+      "lastSyncedAt": null,
+      "createdAt": "2026-01-09T09:12:20.000Z",
+      "updatedAt": "2026-01-10T09:15:40.000Z"
+    },
+    {
+      "id": "wed_marrakech_001",
+      "plannerId": "planner_001",
+      "title": "Amina & Lucas",
+      "date": "2027-03-03T16:00:00.000Z",
+      "venueId": "venue_marrakech_001",
+      "destination": "Marrakech, Morocco",
+      "cultureProfileIds": ["culture_maghreb", "culture_islamic"],
+      "guestTarget": 180,
+      "status": "inProgress",
+      "timezone": "Africa/Casablanca",
+      "currency": "MAD",
+      "metrics": {
+        "rsvpYes": 101,
+        "rsvpPending": 28,
+        "cateringCommitted": 130,
+        "budgetPlanned": 310000,
+        "budgetSpent": 109000
+      },
+      "riskLevel": "high",
+      "revision": 9,
+      "lastSyncedAt": null,
+      "createdAt": "2026-01-10T08:00:00.000Z",
+      "updatedAt": "2026-01-10T08:55:20.000Z"
+    }
+  ],
+  "venues": [
+    {
+      "id": "venue_kyoto_001",
+      "name": "Sora Garden Hall",
+      "location": "Kyoto, Japan",
+      "capacity": 260,
+      "defaultSetup": "seated_stage",
+      "contact": {
+        "phone": "+81-75-1234-8899",
+        "email": "bookings@soragarden.jp"
+      },
+      "agreements": [
+        "venue_001_contract_2026"
+      ],
+      "constraints": [
+        "no_late_music_after_22:00",
+        "outdoor_backup_for_rain_required"
+      ],
+      "revision": 3
+    },
+    {
+      "id": "venue_marrakech_001",
+      "name": "Atlas Riad Courtyard",
+      "location": "Marrakech, Morocco",
+      "capacity": 220,
+      "defaultSetup": "tented_ceremony",
+      "contact": {
+        "phone": "+212-5-5555-2020",
+        "email": "events@atlasriad.ma"
+      },
+      "agreements": [
+        "venue_002_contract_2027"
+      ],
+      "constraints": [
+        "sunset_cutoff_coverage_for_ceremony",
+        "minimum_guest_count_150"
+      ],
+      "revision": 5
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_001",
+      "weddingId": "wed_kyoto_001",
+      "title": "Finalize caterer menu with meal diversity by dietary profile",
+      "owner": "team_coordinator",
+      "priority": "high",
+      "status": "in_progress",
+      "dependsOn": ["task_000"],
+      "dueDate": "2026-10-01T00:00:00.000Z",
+      "impactNodes": ["guests", "budget", "vendor_caterer_001"],
+      "revision": 4
+    },
+    {
+      "id": "task_002",
+      "weddingId": "wed_kyoto_001",
+      "title": "Confirm Shinto ceremony protocol with officiant",
+      "owner": "planner",
+      "priority": "critical",
+      "status": "blocked",
+      "dependsOn": [],
+      "dueDate": "2026-10-10T00:00:00.000Z",
+      "impactNodes": ["timeline", "vendor_ritual_001", "risk_high"],
+      "revision": 6
+    },
+    {
+      "id": "task_003",
+      "weddingId": "wed_marrakech_001",
+      "title": "Collect passport and ID list for airport transfer vendor",
+      "owner": "planner",
+      "priority": "medium",
+      "status": "todo",
+      "dependsOn": [],
+      "dueDate": "2026-12-10T00:00:00.000Z",
+      "impactNodes": ["transport", "guest", "destination_checks"],
+      "revision": 2
+    }
+  ],
+  "vendors": [
+    {
+      "id": "vendor_caterer_001",
+      "plannerId": "planner_001",
+      "name": "Miyabi Cuisine",
+      "type": "caterer",
+      "email": "ops@miyabicuisine.jp",
+      "phone": "+81-75-4444-1010",
+      "currency": "JPY",
+      "contractValue": 98000,
+      "status": "active",
+      "payableMilestones": [
+        {
+          "label": "deposit",
+          "amount": 30000,
+          "dueDate": "2026-09-25T00:00:00.000Z",
+          "paid": true
+        },
+        {
+          "label": "final",
+          "amount": 68000,
+          "dueDate": "2026-11-01T00:00:00.000Z",
+          "paid": false
+        }
+      ],
+      "revision": 8
+    },
+    {
+      "id": "vendor_venue_001",
+      "plannerId": "planner_001",
+      "name": "Sora Garden Hall Ops",
+      "type": "venue",
+      "email": "bookings@soragarden.jp",
+      "phone": "+81-75-1234-8899",
+      "currency": "JPY",
+      "contractValue": 160000,
+      "status": "active",
+      "payableMilestones": [
+        {
+          "label": "deposit",
+          "amount": 64000,
+          "dueDate": "2026-08-20T00:00:00.000Z",
+          "paid": true
+        },
+        {
+          "label": "balance",
+          "amount": 96000,
+          "dueDate": "2026-11-01T00:00:00.000Z",
+          "paid": false
+        }
+      ],
+      "revision": 11
+    }
+  ],
+  "budgets": [
+    {
+      "id": "budget_kyoto_001",
+      "weddingId": "wed_kyoto_001",
+      "currency": "JPY",
+      "exchangeFrom": "USD",
+      "exchangeRate": 150.25,
+      "version": "line_items",
+      "lines": [
+        {
+          "category": "venue",
+          "planned": 160000,
+          "actual": 96000
+        },
+        {
+          "category": "catering",
+          "planned": 98000,
+          "actual": 32000
+        },
+        {
+          "category": "decor",
+          "planned": 52000,
+          "actual": 18000
+        },
+        {
+          "category": "travel",
+          "planned": 70000,
+          "actual": 7000
+        }
+      ],
+      "revision": 5
+    }
+  ],
+  "guestGroups": [
+    {
+      "id": "guest_group_001",
+      "weddingId": "wed_kyoto_001",
+      "name": "Family (India)",
+      "count": 44,
+      "mealPreference": {
+        "vegetarian": 20,
+        "standard": 24
+      },
+      "roomingNeed": 30,
+      "revision": 2
+    },
+    {
+      "id": "guest_group_002",
+      "weddingId": "wed_kyoto_001",
+      "name": "Family (Japan)",
+      "count": 61,
+      "mealPreference": {
+        "vegetarian": 8,
+        "standard": 40,
+        "seafood": 13
+      },
+      "roomingNeed": 45,
+      "revision": 2
+    }
+  ],
+  "cultureProfiles": [
+    {
+      "id": "culture_shinto",
+      "name": "Shinto Ceremony",
+      "region": "Japan",
+      "requiredRituals": [
+        "Shubatsu",
+        "kagami-biraki",
+        "formal blessings sequence"
+      ],
+      "sensitiveGifts": [
+        "avoid odd gifts",
+        "include envelope honorific protocol"
+      ],
+      "dressCode": ["modest and traditional option set"],
+      "revision": 1
+    },
+    {
+      "id": "culture_maghreb",
+      "name": "Moroccan Cultural Wedding",
+      "region": "North Africa",
+      "requiredRituals": [
+        "haldi-inspired pre-wedding styling",
+        "tea and storytelling sequence"
+      ],
+      "sensitiveGifts": ["avoid gifts involving live animals"],
+      "dressCode": ["traditional layering; family respect standards"],
+      "revision": 1
+    }
+  ],
+  "destinations": [
+    {
+      "id": "destination_kyoto",
+      "weddingId": "wed_kyoto_001",
+      "country": "Japan",
+      "visaGuidance": false,
+      "seasonality": "autumn_peak",
+      "riskFlags": [
+        "rain_window_on_event_week",
+        "late_holiday_travel_traffic"
+      ],
+      "customs": {
+        "alcoholRegulations": "strict venue-level permit checks",
+        "noiseCurfew": "22:00",
+        "giftRegistry": "optional"
+      },
+      "revision": 3
+    },
+    {
+      "id": "destination_marrakech",
+      "weddingId": "wed_marrakech_001",
+      "country": "Morocco",
+      "visaGuidance": true,
+      "seasonality": "winter_peak",
+      "riskFlags": [
+        "airport transfer timing",
+        "daylight variability"
+      ],
+      "customs": {
+        "alcoholRegulations": "venue specific permit and hospitality limits",
+        "driving": "local transfer partner required",
+        "giftRegistry": "cash and token gifting common"
+      },
+      "revision": 4
+    }
+  ],
+  "sync": {
+    "devices": [
+      {
+        "deviceId": "device_mac_001",
+        "label": "Planner-MacBook-Pro",
+        "os": "macOS",
+        "lastSeenAt": "2026-01-10T10:01:00.000Z",
+        "offlineOnly": true,
+        "syncMode": "local_only"
+      }
+    ],
+    "queues": {
+      "pendingChangeCount": 38,
+      "lastPushCursor": null,
+      "remoteCursor": null,
+      "conflictCount": 0
+    },
+    "policy": {
+      "cloudSyncConsent": "explicit_opt_in",
+      "retainFullBackupLocally": true,
+      "retainCloudMetadataOnly": true
+    }
+  }
+}
