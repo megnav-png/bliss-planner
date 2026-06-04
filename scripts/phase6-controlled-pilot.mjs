@@ -57,8 +57,10 @@ function getCandidateUrls() {
 
   const explicitPort = parsed.port ? Number(parsed.port) : Number.NaN;
   const pathAndQuery = `${parsed.pathname || "/"}${parsed.search || ""}${parsed.hash || ""}`;
-  const candidatePorts = HAS_EXPLICIT_APP_URL && Number.isFinite(explicitPort) && explicitPort !== 0
-    ? [explicitPort]
+  const candidatePorts = HAS_EXPLICIT_APP_URL
+    ? Number.isFinite(explicitPort) && explicitPort !== 0
+      ? [explicitPort]
+      : [null]
     : [...DEFAULT_PORTS];
 
   const uniquePorts = Array.from(new Set(candidatePorts));
@@ -82,7 +84,8 @@ function getCandidateUrls() {
       const normalizedHost = candidateHost.includes(":") && !candidateHost.startsWith("[")
         ? `[${candidateHost}]`
         : candidateHost;
-      candidates.push(`${protocol}//${normalizedHost}:${port}${pathAndQuery}`);
+      const portSegment = port === null ? "" : `:${port}`;
+      candidates.push(`${protocol}//${normalizedHost}${portSegment}${pathAndQuery}`);
     }
   }
 
