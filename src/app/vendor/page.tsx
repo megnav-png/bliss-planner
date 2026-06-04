@@ -1,7 +1,24 @@
 import Link from "next/link";
 import { seedState } from "@/lib/fakeData";
+import { getManagedAuthStatus } from "@/lib/server/managedAuth";
 
-export default function VendorPortalPage() {
+export const dynamic = "force-dynamic";
+
+export default async function VendorPortalPage() {
+  const auth = await getManagedAuthStatus();
+  const allowed = ["VENDOR_PORTAL", "FULL_WORKSPACE"].includes(auth.session.portalAccess);
+  if (!allowed) {
+    return (
+      <main className="portal-shell">
+        <section className="panel card">
+          <p className="kicker">Protected portal</p>
+          <h1>Vendor portal access required</h1>
+          <p>This view is only available to invited vendors or workspace planners.</p>
+          <Link href="/" className="btn btn-brand">Planner dashboard</Link>
+        </section>
+      </main>
+    );
+  }
   const wedding = seedState.weddings.find((item) => item.id === seedState.activeWeddingId) ?? seedState.weddings[0];
   const vendors = seedState.vendors.filter((vendor) => vendor.weddingId === wedding.id);
   const tasks = seedState.tasks.filter((task) => task.weddingId === wedding.id && task.impacts.includes("VENDORS"));
@@ -18,7 +35,7 @@ export default function VendorPortalPage() {
         <div>
           <p className="kicker">Vendor portal</p>
           <h1>{wedding.title}</h1>
-          <p>{wedding.destination} · shared operational brief</p>
+          <p>{wedding.destination} · shared operational brief · {auth.session.email}</p>
         </div>
         <Link href="/" className="btn btn-brand">Planner dashboard</Link>
       </header>

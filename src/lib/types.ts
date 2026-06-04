@@ -14,6 +14,44 @@ export type VenueStatus = "SHORTLISTED" | "HOLD" | "CONTRACTED" | "PERMIT_PENDIN
 export type AccountRole = "OWNER" | "PLANNER" | "PRODUCTION" | "CLIENT" | "VENDOR" | "VIEWER";
 export type AccountStatus = "ACTIVE" | "INVITED" | "SUSPENDED";
 export type PortalAccess = "NONE" | "CLIENT_PORTAL" | "VENDOR_PORTAL" | "FULL_WORKSPACE";
+export type RsvpStatus = "INVITED" | "YES" | "NO" | "MAYBE" | "NO_RESPONSE";
+export type MealPreference = "VEGETARIAN" | "STANDARD" | "SEAFOOD" | "VEGAN" | "JAIN" | "KOSHER" | "HALAL" | "OTHER";
+export type LeadSource = "REFERRAL" | "SEARCH" | "SOCIAL" | "VENDOR" | "PARTNERSHIP" | "CAMPAIGN" | "OTHER";
+export type LeadStatus = "NEW" | "QUALIFIED" | "QUOTING" | "WON" | "LOST" | "ARCHIVED";
+export type QuoteStatus = "NOT_SENT" | "DRAFTING" | "SENT" | "NEGOTIATION" | "ACCEPTED" | "DECLINED";
+
+export interface AuditLogEntry {
+  id: string;
+  actor: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  createdAt: string;
+  note: string;
+}
+
+export interface FileReference {
+  id: string;
+  name: string;
+  kind: "CONTRACT" | "QUOTE" | "MOODBOARD" | "PERMIT" | "INVOICE" | "CLIENT_NOTE" | "OTHER";
+  url?: string;
+  addedAt: string;
+}
+
+export interface ApprovalComment {
+  id: string;
+  author: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface ApprovalHistoryEntry {
+  id: string;
+  state: ClientApprovalState;
+  actor: string;
+  createdAt: string;
+  note: string;
+}
 
 export interface PlannerSettings {
   baseCurrency: string;
@@ -47,6 +85,18 @@ export interface AccountUser {
   status: AccountStatus;
   portalAccess: PortalAccess;
   lastActiveAt?: string;
+}
+
+export interface TeamInvite {
+  id: string;
+  workspaceId: string;
+  email: string;
+  role: AccountRole;
+  portalAccess: PortalAccess;
+  status: "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED";
+  invitedBy: string;
+  invitedAt: string;
+  expiresAt: string;
 }
 
 export interface WorkspaceAccount {
@@ -131,6 +181,13 @@ export interface Vendor {
   currency: string;
   linkedTaskIds: string[];
   notes: string;
+  contactName?: string;
+  contactEmail?: string;
+  contractStatus?: "DRAFT" | "PENDING_SIGNATURE" | "ACTIVE" | "COMPLETED";
+  paymentStatus?: "PENDING" | "PARTIAL" | "PAID" | "OVERDUE";
+  logisticsNotes?: string;
+  riskNotes?: string;
+  files?: FileReference[];
 }
 
 export interface Venue {
@@ -144,6 +201,13 @@ export interface Venue {
   curfew: string;
   linkedTaskIds: string[];
   notes: string;
+  contactName?: string;
+  contactEmail?: string;
+  permitStatus?: "NOT_REQUIRED" | "PENDING" | "SUBMITTED" | "APPROVED";
+  accessWindow?: string;
+  logisticsNotes?: string;
+  riskNotes?: string;
+  files?: FileReference[];
 }
 
 export interface DestinationProfile {
@@ -156,6 +220,10 @@ export interface DestinationProfile {
   weatherNotes: string;
   culturalNotes: string;
   linkedTaskIds: string[];
+  permitNotes?: string;
+  logisticsNotes?: string;
+  riskNotes?: string;
+  files?: FileReference[];
 }
 
 export interface ClientApproval {
@@ -166,6 +234,58 @@ export interface ClientApproval {
   state: ClientApprovalState;
   dueAt: string;
   linkedTaskIds: string[];
+  comments?: ApprovalComment[];
+  history?: ApprovalHistoryEntry[];
+  files?: FileReference[];
+  decidedAt?: string;
+  decisionNote?: string;
+}
+
+export interface Guest {
+  id: string;
+  weddingId: string;
+  householdId: string;
+  name: string;
+  email?: string;
+  groupName: string;
+  rsvpStatus: RsvpStatus;
+  mealPreference: MealPreference;
+  seatPreference?: string;
+  notes?: string;
+}
+
+export interface SeatingTable {
+  id: string;
+  weddingId: string;
+  name: string;
+  zone: string;
+  capacity: number;
+  guestIds: string[];
+  notes?: string;
+}
+
+export interface PipelineLead {
+  id: string;
+  clientName: string;
+  email: string;
+  source: LeadSource;
+  status: LeadStatus;
+  quoteStatus: QuoteStatus;
+  projectedBudget: number;
+  currency: string;
+  preferredDate: string;
+  destinationCity: string;
+  nextAction: string;
+  followUpAt: string;
+  confidenceScore: number;
+}
+
+export interface AnalyticsMetric {
+  id: string;
+  label: string;
+  value: string;
+  trend: string;
+  status: "GOOD" | "WATCH" | "RISK";
 }
 
 export interface ClientStatusSummary {
@@ -201,6 +321,7 @@ export interface Wedding {
 export interface AppState {
   workspace: WorkspaceAccount;
   users: AccountUser[];
+  invites: TeamInvite[];
   session: AuthSession;
   profile: PlannerProfile;
   settings: PlannerSettings;
@@ -210,6 +331,11 @@ export interface AppState {
   venues: Venue[];
   destinations: DestinationProfile[];
   clientApprovals: ClientApproval[];
+  guests: Guest[];
+  seatingTables: SeatingTable[];
+  pipelineLeads: PipelineLead[];
+  auditLogs: AuditLogEntry[];
+  analytics: AnalyticsMetric[];
   activeWeddingId: string;
   onboarded: boolean;
 }

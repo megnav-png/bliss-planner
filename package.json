@@ -23,6 +23,7 @@
     "railway:deploy": "bash scripts/run-railway-deploy.sh",
     "sync:relay:prototype": "node sync-relay/prototype-server.mjs",
     "sync:relay:smoke": "node scripts/smoke-sync-relay.mjs",
+    "sync:relay:health": "node scripts/check-relay-health.mjs",
     "phase7:desktop:launch": "BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3002 node scripts/run-desktop.mjs",
     "phase7:desktop:smoke": "BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3090 BLISS_DESKTOP_SMOKE_TEST=true node scripts/run-desktop.mjs",
     "phase7:desktop:package": "node scripts/package-desktop.mjs",

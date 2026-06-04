@@ -2,13 +2,18 @@ import {
   AppState,
   AccountUser,
   AuthSession,
+  AnalyticsMetric,
   BudgetLine,
   ClientApproval,
   CulturalChecklistItem,
   DestinationProfile,
+  Guest,
   GuestGroup,
+  PipelineLead,
   ReadinessItem,
+  SeatingTable,
   Task,
+  TeamInvite,
   Vendor,
   Venue
 } from "./types";
@@ -51,6 +56,31 @@ const users: AccountUser[] = [
     role: "VENDOR",
     status: "INVITED",
     portalAccess: "VENDOR_PORTAL"
+  }
+];
+
+const invites: TeamInvite[] = [
+  {
+    id: "invite-client-kyoto",
+    workspaceId: workspace.id,
+    email: "mika.arjun@example.com",
+    role: "CLIENT",
+    portalAccess: "CLIENT_PORTAL",
+    status: "PENDING",
+    invitedBy: "Aster Bellamy",
+    invitedAt: "2026-06-04T00:00:00.000Z",
+    expiresAt: "2026-06-18T00:00:00.000Z"
+  },
+  {
+    id: "invite-producer",
+    workspaceId: workspace.id,
+    email: "producer@blissplanner.test",
+    role: "PRODUCTION",
+    portalAccess: "FULL_WORKSPACE",
+    status: "PENDING",
+    invitedBy: "Aster Bellamy",
+    invitedAt: "2026-06-04T00:00:00.000Z",
+    expiresAt: "2026-06-18T00:00:00.000Z"
   }
 ];
 
@@ -121,7 +151,16 @@ const vendors: Vendor[] = [
     estimate: 98000,
     currency: "JPY",
     linkedTaskIds: ["task-001"],
-    notes: "Needs final vegetarian/seafood split before contract lock."
+    notes: "Needs final vegetarian/seafood split before contract lock.",
+    contactName: "Hana Mori",
+    contactEmail: "hana@kyotable.test",
+    contractStatus: "PENDING_SIGNATURE",
+    paymentStatus: "PARTIAL",
+    logisticsNotes: "Requires kitchen access from 09:00 and allergen card sign-off.",
+    riskNotes: "Menu scope can slip if final guest meal split moves after September 28.",
+    files: [
+      { id: "file-menu", name: "Autumn tasting menu v3", kind: "QUOTE", addedAt: "2026-09-12T00:00:00.000Z" }
+    ]
   },
   {
     id: "vendor-kyoto-decor",
@@ -133,7 +172,16 @@ const vendors: Vendor[] = [
     estimate: 52000,
     currency: "JPY",
     linkedTaskIds: [],
-    notes: "Install schedule depends on venue access window."
+    notes: "Install schedule depends on venue access window.",
+    contactName: "Ren Sato",
+    contactEmail: "ren@goldenmoss.test",
+    contractStatus: "ACTIVE",
+    paymentStatus: "PARTIAL",
+    logisticsNotes: "Install crew needs loading bay clearance and shrine flower restrictions.",
+    riskNotes: "No open flame materials near ceremony approach.",
+    files: [
+      { id: "file-moodboard", name: "Gold moss ceremony moodboard", kind: "MOODBOARD", addedAt: "2026-09-10T00:00:00.000Z" }
+    ]
   },
   {
     id: "vendor-marrakech-transfer",
@@ -145,7 +193,14 @@ const vendors: Vendor[] = [
     estimate: 38000,
     currency: "MAD",
     linkedTaskIds: ["task-003"],
-    notes: "Awaiting passport and ID list."
+    notes: "Awaiting passport and ID list.",
+    contactName: "Samir El Fassi",
+    contactEmail: "ops@atlasarrival.test",
+    contractStatus: "DRAFT",
+    paymentStatus: "PENDING",
+    logisticsNotes: "Airport manifest must be frozen 14 days before first arrival.",
+    riskNotes: "Missing ID list blocks hotel pre-check and transfer grouping.",
+    files: []
   }
 ];
 
@@ -160,7 +215,16 @@ const venues: Venue[] = [
     capacity: 240,
     curfew: "21:30",
     linkedTaskIds: ["task-002"],
-    notes: "Ceremony protocol approval required before final run sheet."
+    notes: "Ceremony protocol approval required before final run sheet.",
+    contactName: "Yumi Takeda",
+    contactEmail: "events@higashiyama.test",
+    permitStatus: "PENDING",
+    accessWindow: "08:00-21:30",
+    logisticsNotes: "Guest photography limits and procession path need ceremony steward.",
+    riskNotes: "Protocol approval blocks final floor plan and ceremony call sheet.",
+    files: [
+      { id: "file-shrine-permit", name: "Shrine permit checklist", kind: "PERMIT", addedAt: "2026-09-08T00:00:00.000Z" }
+    ]
   },
   {
     id: "venue-marrakech-riad",
@@ -172,7 +236,14 @@ const venues: Venue[] = [
     capacity: 190,
     curfew: "23:00",
     linkedTaskIds: [],
-    notes: "Sound permit and buyout contract are the next gates."
+    notes: "Sound permit and buyout contract are the next gates.",
+    contactName: "Nadia Bennis",
+    contactEmail: "events@riadnoor.test",
+    permitStatus: "SUBMITTED",
+    accessWindow: "10:00-23:00",
+    logisticsNotes: "Riad courtyard load-in needs small van routing and noise permit.",
+    riskNotes: "Sound permit timing impacts welcome dinner music scope.",
+    files: []
   }
 ];
 
@@ -186,7 +257,11 @@ const destinations: DestinationProfile[] = [
     visaNotes: "Check nationality-specific visa rules 90 days before arrival.",
     weatherNotes: "Autumn evenings can be cool; shawl note recommended.",
     culturalNotes: "Brief guests on shrine etiquette, shoes, and photography limits.",
-    linkedTaskIds: ["task-002"]
+    linkedTaskIds: ["task-002"],
+    permitNotes: "Shrine protocol permit and photography restrictions must be included in guest guide.",
+    logisticsNotes: "Station transfer host and bilingual wayfinding required.",
+    riskNotes: "Protocol misalignment creates ceremony timeline risk.",
+    files: []
   },
   {
     id: "destination-marrakech",
@@ -197,7 +272,11 @@ const destinations: DestinationProfile[] = [
     visaNotes: "Collect passport details for transfer manifest and hotel pre-check.",
     weatherNotes: "Dry daytime heat with cooler evenings; hydration plan needed.",
     culturalNotes: "Add dress, local host etiquette, and tea-service guidance.",
-    linkedTaskIds: ["task-003"]
+    linkedTaskIds: ["task-003"],
+    permitNotes: "Sound and courtyard use permit under review.",
+    logisticsNotes: "Airport arrivals, riad shuttles, and pre-check manifest are linked.",
+    riskNotes: "Guest ID pack is the highest-risk dependency.",
+    files: []
   }
 ];
 
@@ -209,7 +288,17 @@ const clientApprovals: ClientApproval[] = [
     owner: "Aster Bellamy",
     state: "CLIENT_REVIEW",
     dueAt: "2026-09-22",
-    linkedTaskIds: ["task-002"]
+    linkedTaskIds: ["task-002"],
+    comments: [
+      { id: "comment-shrine-1", author: "Aster Bellamy", body: "Client asked for a short guest-facing explanation of shrine etiquette.", createdAt: "2026-09-14T00:00:00.000Z" }
+    ],
+    history: [
+      { id: "history-shrine-1", state: "DRAFT", actor: "Aster Bellamy", createdAt: "2026-09-12T00:00:00.000Z", note: "Drafted for client review." },
+      { id: "history-shrine-2", state: "CLIENT_REVIEW", actor: "Aster Bellamy", createdAt: "2026-09-14T00:00:00.000Z", note: "Sent to client portal." }
+    ],
+    files: [
+      { id: "file-shrine-note", name: "Shrine etiquette brief", kind: "CLIENT_NOTE", addedAt: "2026-09-14T00:00:00.000Z" }
+    ]
   },
   {
     id: "approval-kyoto-menu",
@@ -218,7 +307,12 @@ const clientApprovals: ClientApproval[] = [
     owner: "Operations",
     state: "DRAFT",
     dueAt: "2026-09-28",
-    linkedTaskIds: ["task-001"]
+    linkedTaskIds: ["task-001"],
+    comments: [],
+    history: [
+      { id: "history-menu-1", state: "DRAFT", actor: "Operations", createdAt: "2026-09-13T00:00:00.000Z", note: "Waiting for final meal split." }
+    ],
+    files: []
   },
   {
     id: "approval-marrakech-transfer",
@@ -227,8 +321,72 @@ const clientApprovals: ClientApproval[] = [
     owner: "Guest Ops",
     state: "ESCALATION",
     dueAt: "2026-12-04",
-    linkedTaskIds: ["task-003"]
+    linkedTaskIds: ["task-003"],
+    comments: [
+      { id: "comment-transfer-1", author: "Guest Ops", body: "Escalated because the transfer vendor cannot finalize manifest without IDs.", createdAt: "2026-11-20T00:00:00.000Z" }
+    ],
+    history: [
+      { id: "history-transfer-1", state: "ESCALATION", actor: "Guest Ops", createdAt: "2026-11-20T00:00:00.000Z", note: "Escalated to planner." }
+    ],
+    files: []
   }
+];
+
+const guests: Guest[] = [
+  { id: "guest-akira", weddingId: "wed_kyoto_001", householdId: "household-mori", name: "Akira Mori", email: "akira@example.com", groupName: "Family (Japan)", rsvpStatus: "YES", mealPreference: "SEAFOOD", seatPreference: "Family table", notes: "Prefers aisle access." },
+  { id: "guest-emiko", weddingId: "wed_kyoto_001", householdId: "household-mori", name: "Emiko Mori", groupName: "Family (Japan)", rsvpStatus: "YES", mealPreference: "VEGETARIAN", seatPreference: "Family table" },
+  { id: "guest-priya", weddingId: "wed_kyoto_001", householdId: "household-shah", name: "Priya Shah", email: "priya@example.com", groupName: "Family (India)", rsvpStatus: "MAYBE", mealPreference: "JAIN", seatPreference: "Quiet zone" },
+  { id: "guest-omar", weddingId: "wed_marrakech_001", householdId: "household-guestops", name: "Omar Idrissi", groupName: "Friends", rsvpStatus: "NO_RESPONSE", mealPreference: "HALAL" }
+];
+
+const seatingTables: SeatingTable[] = [
+  { id: "seat-family-a", weddingId: "wed_kyoto_001", name: "Family A", zone: "Garden left", capacity: 10, guestIds: ["guest-akira", "guest-emiko"], notes: "Close to ceremony exit." },
+  { id: "seat-quiet", weddingId: "wed_kyoto_001", name: "Quiet Zone", zone: "Garden right", capacity: 8, guestIds: ["guest-priya"], notes: "Lower music volume." }
+];
+
+const pipelineLeads: PipelineLead[] = [
+  {
+    id: "lead-lake-como",
+    clientName: "Elena & Marco",
+    email: "elena@example.com",
+    source: "REFERRAL",
+    status: "QUOTING",
+    quoteStatus: "SENT",
+    projectedBudget: 240000,
+    currency: "EUR",
+    preferredDate: "2027-06-12",
+    destinationCity: "Lake Como",
+    nextAction: "Follow up on venue shortlist",
+    followUpAt: "2026-06-10",
+    confidenceScore: 0.74
+  },
+  {
+    id: "lead-bali",
+    clientName: "Noor & James",
+    email: "noor@example.com",
+    source: "SOCIAL",
+    status: "QUALIFIED",
+    quoteStatus: "DRAFTING",
+    projectedBudget: 180000,
+    currency: "USD",
+    preferredDate: "2027-03-18",
+    destinationCity: "Bali",
+    nextAction: "Send planning scope options",
+    followUpAt: "2026-06-08",
+    confidenceScore: 0.62
+  }
+];
+
+const analytics: AnalyticsMetric[] = [
+  { id: "metric-sync", label: "Sync health", value: "Protected", trend: "Relay token active", status: "GOOD" },
+  { id: "metric-approval", label: "Approval cycle", value: "2.8 days", trend: "12% faster than baseline", status: "GOOD" },
+  { id: "metric-risk", label: "Open risk gates", value: "3", trend: "1 critical dependency", status: "WATCH" },
+  { id: "metric-leads", label: "Pipeline value", value: "EUR 240k + USD 180k", trend: "2 active qualified leads", status: "GOOD" }
+];
+
+const auditLogs = [
+  { id: "audit-1", actor: "Aster Bellamy", action: "CLIENT_REVIEW_SENT", entity: "client_approval", entityId: "approval-kyoto-shrine", createdAt: "2026-09-14T00:00:00.000Z", note: "Shrine protocol sent for client review." },
+  { id: "audit-2", actor: "Operations", action: "VENDOR_QUOTE_UPDATED", entity: "vendor", entityId: "vendor-kyoto-caterer", createdAt: "2026-09-13T00:00:00.000Z", note: "Catering quote updated after tasting." }
 ];
 
 const kyotoReadiness: ReadinessItem[] = [
@@ -364,6 +522,7 @@ const marrakechCulture: CulturalChecklistItem[] = [
 export const seedState: AppState = {
   workspace,
   users,
+  invites,
   session,
   profile: {
     name: "Aster Bellamy",
@@ -455,6 +614,11 @@ export const seedState: AppState = {
   venues,
   destinations,
   clientApprovals,
+  guests,
+  seatingTables,
+  pipelineLeads,
+  auditLogs,
+  analytics,
   activeWeddingId: "wed_kyoto_001",
   onboarded: false
 };

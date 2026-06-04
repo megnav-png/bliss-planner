@@ -15,6 +15,7 @@ import {
   useSetPlannerIdentity,
   useSetSyncEndpoint,
   useSetSyncMode,
+  useDecideClientApproval,
   useDeleteClientApproval,
   useDeleteCulturalChecklistItem,
   useDeleteDestination,
@@ -26,10 +27,15 @@ import {
   useStartDevicePairing,
   useSyncDiagnostics,
   useToggleTask,
+  useInviteTeamMember,
+  useUpdateUserAccess,
   useUpdateGuestTarget,
   useUpsertClientApproval,
   useUpsertCulturalChecklistItem,
   useUpsertDestination,
+  useUpsertGuest,
+  useUpsertPipelineLead,
+  useUpsertSeatingTable,
   useUpsertVendor,
   useUpsertVenue
 } from "@/lib/queries";
@@ -64,6 +70,12 @@ export default function HomePage() {
   const deleteCultureMutation = useDeleteCulturalChecklistItem();
   const upsertApprovalMutation = useUpsertClientApproval();
   const deleteApprovalMutation = useDeleteClientApproval();
+  const decideApprovalMutation = useDecideClientApproval();
+  const inviteTeamMutation = useInviteTeamMember();
+  const updateUserAccessMutation = useUpdateUserAccess();
+  const upsertGuestMutation = useUpsertGuest();
+  const upsertSeatingMutation = useUpsertSeatingTable();
+  const upsertLeadMutation = useUpsertPipelineLead();
 
   if (isLoading) {
     return (
@@ -190,6 +202,24 @@ export default function HomePage() {
       }}
       onDeleteClientApproval={(id) => {
         void deleteApprovalMutation.mutateAsync(id);
+      }}
+      onDecideClientApproval={(payload) => {
+        void decideApprovalMutation.mutateAsync(payload);
+      }}
+      onInviteTeamMember={(draft) => {
+        void inviteTeamMutation.mutateAsync(draft);
+      }}
+      onUpdateUserAccess={(payload) => {
+        void updateUserAccessMutation.mutateAsync(payload);
+      }}
+      onUpsertGuest={(draft) => {
+        void upsertGuestMutation.mutateAsync(draft);
+      }}
+      onUpsertSeatingTable={(draft) => {
+        void upsertSeatingMutation.mutateAsync(draft);
+      }}
+      onUpsertPipelineLead={(draft) => {
+        void upsertLeadMutation.mutateAsync(draft);
       }}
       syncError={
         importPackageMutation.error?.message ||

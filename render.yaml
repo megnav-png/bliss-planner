@@ -16,6 +16,12 @@ services:
         value: /var/data/bliss-relay
       - key: BLISS_RELAY_STORE_FILE
         value: bliss-planner-hosted-relay-store.json
+      - key: BLISS_RELAY_TOKEN_VERSION
+        value: 1
+      - key: BLISS_RELAY_AUDIT_RETENTION_DAYS
+        value: 90
+      - key: BLISS_RELAY_EVENT_RETENTION_DAYS
+        value: 365
       - key: BLISS_RELAY_SECRET
         sync: false
       - key: BLISS_RELAY_TOKEN

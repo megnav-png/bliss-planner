@@ -14,6 +14,13 @@ const STORAGE_KEY = "wovops.phase2.state";
 
 const seedState = {
   profile: { name: "Visual QA Planner", email: "visual@blissplanner.test", businessName: "Visual QA Studio" },
+  workspace: { id: "visual-workspace", name: "Visual QA Studio", ownerUserId: "visual-owner", region: "APAC", dataResidency: "India", authProvider: "GOOGLE", createdAt: "2026-06-04T00:00:00.000Z" },
+  users: [
+    { id: "visual-owner", workspaceId: "visual-workspace", name: "Visual QA Planner", email: "visual@blissplanner.test", role: "OWNER", status: "ACTIVE", portalAccess: "FULL_WORKSPACE" },
+    { id: "visual-client", workspaceId: "visual-workspace", name: "Visual Client", email: "client@blissplanner.test", role: "CLIENT", status: "ACTIVE", portalAccess: "CLIENT_PORTAL" }
+  ],
+  invites: [{ id: "invite-visual", workspaceId: "visual-workspace", email: "vendor@blissplanner.test", role: "VENDOR", portalAccess: "VENDOR_PORTAL", status: "PENDING", invitedBy: "Visual QA Planner", invitedAt: "2026-06-04T00:00:00.000Z", expiresAt: "2026-06-18T00:00:00.000Z" }],
+  session: { userId: "visual-owner", workspaceId: "visual-workspace", role: "OWNER", issuedAt: "2026-06-04T00:00:00.000Z", expiresAt: "2026-06-05T00:00:00.000Z" },
   settings: {
     baseCurrency: "USD",
     bookingCurrency: "USD",
@@ -64,10 +71,15 @@ const seedState = {
     }
   ],
   tasks: [{ id: "task-1", weddingId: "visual-wedding", title: "Confirm caterer", owner: "Operations", priority: "HIGH", status: "IN_PROGRESS", dueAt: "2026-10-01", dependsOn: [], impacts: ["GUESTS", "BUDGET", "VENDORS"] }],
-  vendors: [{ id: "vendor-1", weddingId: "visual-wedding", name: "Visual Caterers", category: "CATERING", owner: "Operations", status: "QUOTED", estimate: 65000, currency: "USD", linkedTaskIds: ["task-1"], notes: "Visual vendor." }],
-  venues: [{ id: "venue-1", weddingId: "visual-wedding", name: "Visual Beach House", city: "Goa", country: "India", status: "HOLD", capacity: 200, curfew: "23:00", linkedTaskIds: [], notes: "Visual venue." }],
-  destinations: [{ id: "destination-1", weddingId: "visual-wedding", name: "Visual destination profile", region: "South Asia", travelRisk: "MEDIUM", visaNotes: "Check visas.", weatherNotes: "Check season.", culturalNotes: "Brief guests.", linkedTaskIds: [] }],
-  clientApprovals: [{ id: "approval-1", weddingId: "visual-wedding", title: "Menu sign-off", owner: "Visual QA Planner", state: "CLIENT_REVIEW", dueAt: "2026-09-22", linkedTaskIds: ["task-1"] }],
+  vendors: [{ id: "vendor-1", weddingId: "visual-wedding", name: "Visual Caterers", category: "CATERING", owner: "Operations", status: "QUOTED", estimate: 65000, currency: "USD", linkedTaskIds: ["task-1"], notes: "Visual vendor.", contactName: "Mira", contactEmail: "mira@example.com", contractStatus: "Quote received", paymentStatus: "Deposit pending", logisticsNotes: "Loading bay B", riskNotes: "Final count pending", files: [{ id: "file-vendor", name: "Quote", kind: "QUOTE", addedAt: "2026-06-04T00:00:00.000Z" }] }],
+  venues: [{ id: "venue-1", weddingId: "visual-wedding", name: "Visual Beach House", city: "Goa", country: "India", status: "HOLD", capacity: 200, curfew: "23:00", linkedTaskIds: [], notes: "Visual venue.", contactName: "Ravi", contactEmail: "ravi@example.com", permitStatus: "Permit review", accessWindow: "08:00-23:00", logisticsNotes: "North gate", riskNotes: "Sound cutoff", files: [{ id: "file-venue", name: "Hold", kind: "CONTRACT", addedAt: "2026-06-04T00:00:00.000Z" }] }],
+  destinations: [{ id: "destination-1", weddingId: "visual-wedding", name: "Visual destination profile", region: "South Asia", travelRisk: "MEDIUM", visaNotes: "Check visas.", weatherNotes: "Check season.", culturalNotes: "Brief guests.", permitNotes: "Beach permit", logisticsNotes: "Coach transfer", riskNotes: "Weather watch", linkedTaskIds: [] }],
+  clientApprovals: [{ id: "approval-1", weddingId: "visual-wedding", title: "Menu sign-off", owner: "Visual QA Planner", state: "CLIENT_REVIEW", dueAt: "2026-09-22", linkedTaskIds: ["task-1"], comments: [{ id: "comment-1", author: "Client", body: "Need vegan notes.", createdAt: "2026-06-04T00:00:00.000Z" }], history: [{ id: "history-1", state: "CLIENT_REVIEW", actor: "Visual QA Planner", createdAt: "2026-06-04T00:00:00.000Z", note: "Sent for review." }], files: [{ id: "file-approval", name: "Menu", kind: "CLIENT_NOTE", addedAt: "2026-06-04T00:00:00.000Z" }] }],
+  guests: [{ id: "guest-1", weddingId: "visual-wedding", householdId: "household-visual", name: "Visual Guest", email: "guest@blissplanner.test", groupName: "Family", rsvpStatus: "YES", mealPreference: "VEGETARIAN", seatPreference: "Table 1", notes: "Accessible room" }],
+  seatingTables: [{ id: "table-1", weddingId: "visual-wedding", name: "Table 1", zone: "Garden", capacity: 10, guestIds: ["guest-1"], notes: "Near stage" }],
+  pipelineLeads: [{ id: "lead-1", clientName: "Visual Inquiry", email: "lead@blissplanner.test", source: "REFERRAL", status: "QUALIFIED", quoteStatus: "SENT", projectedBudget: 85000, currency: "USD", preferredDate: "2027-01-20", destinationCity: "Goa", nextAction: "Follow up on scope", followUpAt: "2026-06-10", confidenceScore: 0.7 }],
+  auditLogs: [{ id: "audit-1", actor: "Visual QA Planner", action: "VISUAL_SEED", entity: "wedding", entityId: "visual-wedding", createdAt: "2026-06-04T00:00:00.000Z", note: "Visual QA seed." }],
+  analytics: [{ id: "metric-1", label: "Open approvals", value: "1", trend: "0", status: "WATCH" }],
   activeWeddingId: "visual-wedding",
   onboarded: true
 };
@@ -105,7 +117,19 @@ try {
     await page.getByRole("heading", { name: "Bliss Planner Dashboard" }).waitFor({ timeout: 20_000 });
     await page.getByTestId("deploy-version-marker").waitFor({ timeout: 10_000 });
     await page.getByLabel("Operational records").waitFor({ timeout: 10_000 });
-    await page.getByText("Visual Caterers").waitFor({ timeout: 10_000 });
+    await page.getByText("Visual Caterers").first().waitFor({ timeout: 10_000 });
+    for (const text of [
+      "Team and portal access",
+      "Planner approval queue",
+      "Vendor detail module",
+      "Venue detail module",
+      "Destination detail module",
+      "Guest RSVP and seating",
+      "Business development CRM",
+      "Analytics and monitoring"
+    ]) {
+      await page.getByText(text, { exact: false }).first().waitFor({ timeout: 10_000 });
+    }
 
     const metrics = await page.evaluate(() => {
       const body = document.body;

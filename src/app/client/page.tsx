@@ -1,7 +1,24 @@
 import Link from "next/link";
 import { seedState } from "@/lib/fakeData";
+import { getManagedAuthStatus } from "@/lib/server/managedAuth";
 
-export default function ClientPortalPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ClientPortalPage() {
+  const auth = await getManagedAuthStatus();
+  const allowed = ["CLIENT_PORTAL", "FULL_WORKSPACE"].includes(auth.session.portalAccess);
+  if (!allowed) {
+    return (
+      <main className="portal-shell">
+        <section className="panel card">
+          <p className="kicker">Protected portal</p>
+          <h1>Client portal access required</h1>
+          <p>This view is only available to invited client users or workspace planners.</p>
+          <Link href="/" className="btn btn-brand">Planner dashboard</Link>
+        </section>
+      </main>
+    );
+  }
   const wedding = seedState.weddings.find((item) => item.id === seedState.activeWeddingId) ?? seedState.weddings[0];
   const tasks = seedState.tasks.filter((task) => task.weddingId === wedding.id);
   const approvals = seedState.clientApprovals.filter((approval) => approval.weddingId === wedding.id);
@@ -18,7 +35,7 @@ export default function ClientPortalPage() {
         <div>
           <p className="kicker">Client portal</p>
           <h1>{wedding.title}</h1>
-          <p>{wedding.destination} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(wedding.date))}</p>
+          <p>{wedding.destination} · {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(wedding.date))} · {auth.session.email}</p>
         </div>
         <Link href="/" className="btn btn-brand">Planner dashboard</Link>
       </header>

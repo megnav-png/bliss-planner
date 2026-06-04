@@ -38,6 +38,22 @@ async function waitForStoredState(page, predicateSource, timeout = 15_000) {
 }
 
 const seedState = {
+  workspace: {
+    id: "pilot-workspace",
+    name: "Pilot Wedding Group",
+    ownerUserId: "pilot-owner",
+    region: "APAC",
+    dataResidency: "India",
+    authProvider: "GOOGLE",
+    createdAt: "2026-06-04T00:00:00.000Z"
+  },
+  users: [
+    { id: "pilot-owner", workspaceId: "pilot-workspace", name: "Pilot Planner", email: "pilot@blissplanner.test", role: "OWNER", status: "ACTIVE", portalAccess: "FULL_WORKSPACE" },
+    { id: "pilot-client", workspaceId: "pilot-workspace", name: "Pilot Client", email: "client@blissplanner.test", role: "CLIENT", status: "ACTIVE", portalAccess: "CLIENT_PORTAL" },
+    { id: "pilot-vendor-user", workspaceId: "pilot-workspace", name: "Pilot Vendor", email: "vendor@blissplanner.test", role: "VENDOR", status: "ACTIVE", portalAccess: "VENDOR_PORTAL" }
+  ],
+  invites: [{ id: "invite-pilot", workspaceId: "pilot-workspace", email: "producer@blissplanner.test", role: "PRODUCTION", portalAccess: "FULL_WORKSPACE", status: "PENDING", invitedBy: "Pilot Planner", invitedAt: "2026-06-04T00:00:00.000Z", expiresAt: "2026-06-18T00:00:00.000Z" }],
+  session: { userId: "pilot-owner", workspaceId: "pilot-workspace", role: "OWNER", issuedAt: "2026-06-04T00:00:00.000Z", expiresAt: "2026-06-05T00:00:00.000Z" },
   profile: {
     name: "Pilot Planner",
     email: "pilot@blissplanner.test",
@@ -159,7 +175,14 @@ const seedState = {
       estimate: 65000,
       currency: "USD",
       linkedTaskIds: ["task-1"],
-      notes: "Deterministic vendor."
+      notes: "Deterministic vendor.",
+      contactName: "Pilot Vendor Lead",
+      contactEmail: "vendor@blissplanner.test",
+      contractStatus: "Quote received",
+      paymentStatus: "Deposit pending",
+      logisticsNotes: "Load-in via north gate.",
+      riskNotes: "Final count pending.",
+      files: [{ id: "file-vendor", name: "Pilot catering quote", kind: "QUOTE", addedAt: "2026-06-04T00:00:00.000Z" }]
     }
   ],
   venues: [
@@ -173,7 +196,14 @@ const seedState = {
       capacity: 200,
       curfew: "23:00",
       linkedTaskIds: [],
-      notes: "Deterministic venue."
+      notes: "Deterministic venue.",
+      contactName: "Pilot Venue Manager",
+      contactEmail: "venue@blissplanner.test",
+      permitStatus: "Noise permit pending",
+      accessWindow: "08:00-23:00",
+      logisticsNotes: "Back-of-house staging confirmed.",
+      riskNotes: "Rain backup needs sign-off.",
+      files: [{ id: "file-venue", name: "Venue hold", kind: "CONTRACT", addedAt: "2026-06-04T00:00:00.000Z" }]
     }
   ],
   destinations: [
@@ -186,6 +216,9 @@ const seedState = {
       visaNotes: "Confirm guest nationalities.",
       weatherNotes: "Monsoon check.",
       culturalNotes: "Welcome notes pending.",
+      permitNotes: "Beach ceremony permit in review.",
+      logisticsNotes: "Airport transfer route locked.",
+      riskNotes: "Heat plan needed.",
       linkedTaskIds: []
     }
   ],
@@ -197,8 +230,19 @@ const seedState = {
       owner: "Pilot Planner",
       state: "CLIENT_REVIEW",
       dueAt: "2026-09-22",
-      linkedTaskIds: ["task-1"]
+      linkedTaskIds: ["task-1"],
+      comments: [{ id: "comment-1", author: "Pilot Client", body: "Please confirm vegan labels.", createdAt: "2026-06-04T00:00:00.000Z" }],
+      history: [{ id: "history-1", state: "CLIENT_REVIEW", actor: "Pilot Planner", createdAt: "2026-06-04T00:00:00.000Z", note: "Sent menu for approval." }],
+      files: [{ id: "file-approval", name: "Menu draft", kind: "CLIENT_NOTE", addedAt: "2026-06-04T00:00:00.000Z" }]
     }
+  ],
+  guests: [{ id: "guest-1", weddingId: "wed_pilot", householdId: "household-kapoor", name: "Pilot Guest", email: "guest@blissplanner.test", groupName: "Family", rsvpStatus: "YES", mealPreference: "VEGETARIAN", seatPreference: "Table 1", notes: "Accessible room" }],
+  seatingTables: [{ id: "table-1", weddingId: "wed_pilot", name: "Table 1", zone: "Garden", capacity: 10, guestIds: ["guest-1"], notes: "Near stage" }],
+  pipelineLeads: [{ id: "lead-1", clientName: "Pilot Inquiry", email: "lead@blissplanner.test", source: "REFERRAL", status: "QUALIFIED", quoteStatus: "SENT", projectedBudget: 85000, currency: "USD", preferredDate: "2027-01-20", destinationCity: "Goa", nextAction: "Follow up on planning scope", followUpAt: "2026-06-10", confidenceScore: 0.72 }],
+  auditLogs: [{ id: "audit-1", actor: "Pilot Planner", action: "PILOT_SEED", entity: "wedding", entityId: "wed_pilot", createdAt: "2026-06-04T00:00:00.000Z", note: "Pilot seed." }],
+  analytics: [
+    { id: "metric-1", label: "Open approvals", value: "1", trend: "0", status: "WATCH" },
+    { id: "metric-2", label: "Pipeline value", value: "$85K", trend: "+1 lead", status: "GOOD" }
   ],
   activeWeddingId: "wed_pilot",
   onboarded: true
@@ -244,6 +288,14 @@ try {
     "Cultural checklist",
     "Client status summary",
     "Operational records",
+    "Team and portal access",
+    "Planner approval queue",
+    "Vendor detail module",
+    "Venue detail module",
+    "Destination detail module",
+    "Guest RSVP and seating",
+    "Business development CRM",
+    "Analytics and monitoring",
     "Pilot Caterers",
     "Pilot Beach House",
     "Goa destination profile",
@@ -277,6 +329,25 @@ try {
   await waitForStoredState(page, "state => state.clientApprovals?.some(approval => approval.title === 'Final music approval')");
   await page.getByLabel("Operational records").getByText("Final music approval").first().waitFor({ timeout: 10_000 });
   addResult("Client approval CRUD", "PASS", "Client approval create flow added a new approval record.");
+
+  await page.getByRole("button", { name: /Approve/i }).first().click();
+  await waitForStoredState(page, "state => state.clientApprovals?.some(approval => approval.id === 'approval-1' && approval.state === 'APPROVED')");
+  addResult("Client approval decision", "PASS", "Approval queue changed a client approval to approved with history.");
+
+  await page.getByLabel("Invite team member").fill("planner2@blissplanner.test");
+  await page.getByRole("button", { name: /Send invite/i }).click();
+  await waitForStoredState(page, "state => state.invites?.some(invite => invite.email === 'planner2@blissplanner.test')");
+  addResult("Team invitation", "PASS", "Team invite created and persisted.");
+
+  await page.getByLabel("Add guest").fill("Pilot Guest Two");
+  await page.getByRole("button", { name: /Add guest/i }).click();
+  await waitForStoredState(page, "state => state.guests?.some(guest => guest.name === 'Pilot Guest Two')");
+  addResult("Guest RSVP foundation", "PASS", "Guest record created and persisted.");
+
+  await page.getByLabel("Add inquiry").fill("Pilot Corporate Wedding");
+  await page.getByRole("button", { name: /Add lead/i }).click();
+  await waitForStoredState(page, "state => state.pipelineLeads?.some(lead => lead.clientName === 'Pilot Corporate Wedding')");
+  addResult("Business development CRM", "PASS", "Inquiry lead created and persisted.");
 } catch (error) {
   addResult("Pilot flow", "ERROR", error instanceof Error ? error.message : String(error));
 } finally {

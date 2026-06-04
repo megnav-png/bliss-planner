@@ -51,6 +51,8 @@
    - [ ] Hosted Next relay routes validate `/api/sync/health`, pairing, push, pull, device revocation, and delete-cloud-data.
    - [ ] Render has `BLISS_RELAY_STORE_DIR=/var/data/bliss-relay` with a persistent disk, or `BLISS_RELAY_STORE_BACKEND=postgres` with `BLISS_RELAY_DATABASE_URL`.
    - [ ] Render has `BLISS_RELAY_SECRET` and `BLISS_RELAY_TOKEN` set.
+   - [ ] Render has `BLISS_RELAY_TOKEN_VERSION`, `BLISS_RELAY_AUDIT_RETENTION_DAYS`, and `BLISS_RELAY_EVENT_RETENTION_DAYS` set.
+   - [ ] `BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_RELAY_TOKEN=<token> npm run sync:relay:health` reports `durable: true`, `authRequired: true`, nonzero `auditLogCount`, and the expected token version.
    - [ ] Managed auth provider env is set: `BLISS_AUTH_PROVIDER`, `BLISS_AUTH_CLIENT_ID`, `BLISS_AUTH_CLIENT_SECRET`, `BLISS_AUTH_SESSION_SECRET`, `BLISS_PUBLIC_APP_URL`.
    - [ ] Encrypted package format approved before relay API work begins.
    - [ ] Device pairing, revocation, retention, conflict review, and delete-cloud-data flows are scoped.
@@ -59,10 +61,11 @@
 1. `npm run phase6:pilot:deterministic`
 2. `npm run build`
 3. `BLISS_APP_URL=https://bliss-planner.onrender.com npm run qa:render:visual`
-4. `npm run phase7:desktop:smoke`
-5. `npm run phase7:desktop:package`
-6. `npm run phase7:desktop:package:win-smoke`
-7. `npm run phase7:desktop:package:win-signed` after Windows signing credentials are available.
+4. `BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_RELAY_TOKEN=<token> npm run sync:relay:health`
+5. `npm run phase7:desktop:smoke`
+6. `npm run phase7:desktop:package`
+7. `npm run phase7:desktop:package:win-smoke`
+8. `npm run phase7:desktop:package:win-signed` after Windows signing credentials are available.
 8. Install package artifact in a clean machine profile and run:
    - onboarding flow
    - reset + onboarding recheck

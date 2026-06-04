@@ -16,7 +16,12 @@ type SyncEntity =
   | "venue"
   | "destination"
   | "cultural_item"
-  | "client_approval";
+  | "client_approval"
+  | "team_invite"
+  | "account_user"
+  | "guest"
+  | "seating_table"
+  | "pipeline_lead";
 
 interface SyncEnvelope {
   id: string;

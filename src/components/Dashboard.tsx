@@ -3,15 +3,28 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
+  AccountRole,
   ClientApprovalState,
   ImpactRow,
+  MealPreference,
   ReadinessArea,
+  RsvpStatus,
   TaskStatus,
   VendorCategory,
   VendorStatus,
   VenueStatus
 } from "@/lib/types";
-import type { ClientApprovalDraft, CulturalChecklistDraft, DestinationDraft, VendorDraft, VenueDraft } from "@/lib/repository";
+import type {
+  ClientApprovalDraft,
+  CulturalChecklistDraft,
+  DestinationDraft,
+  GuestDraft,
+  PipelineLeadDraft,
+  SeatingTableDraft,
+  TeamInviteDraft,
+  VendorDraft,
+  VenueDraft
+} from "@/lib/repository";
 import { DeleteRelayWorkspaceResult, DevicePairingResult, RevokeDeviceResult, SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
 import { buildInfo, shortCommit } from "@/lib/buildInfo";
 import type { ManagedAuthStatus } from "@/lib/server/managedAuth";
@@ -64,6 +77,12 @@ interface DashboardProps {
   onDeleteCulturalChecklistItem: (payload: { weddingId: string; itemId: string }) => void;
   onUpsertClientApproval: (draft: ClientApprovalDraft) => void;
   onDeleteClientApproval: (id: string) => void;
+  onDecideClientApproval: (payload: { approvalId: string; state: ClientApprovalState; note: string }) => void;
+  onInviteTeamMember: (draft: TeamInviteDraft) => void;
+  onUpdateUserAccess: (payload: { userId: string; role: AccountRole; portalAccess: AppState["users"][number]["portalAccess"] }) => void;
+  onUpsertGuest: (draft: GuestDraft) => void;
+  onUpsertSeatingTable: (draft: SeatingTableDraft) => void;
+  onUpsertPipelineLead: (draft: PipelineLeadDraft) => void;
   syncError?: string;
   importPackageError?: unknown;
   isLoadingTasks: boolean;
@@ -142,12 +161,17 @@ export default function Dashboard({
   onDeleteCulturalChecklistItem,
   onUpsertClientApproval,
   onDeleteClientApproval,
+  onDecideClientApproval,
+  onInviteTeamMember,
+  onUpdateUserAccess,
+  onUpsertGuest,
+  onUpsertSeatingTable,
+  onUpsertPipelineLead,
   syncError,
   importPackageError,
   isLoadingTasks
 }: DashboardProps) {
   const selected = state.weddings.find((w) => w.id === activeWeddingId) ?? state.weddings[0];
-  const selectedTasks = state.tasks.filter((task) => task.weddingId === selected.id);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -159,6 +183,9 @@ export default function Dashboard({
   const [destinationName, setDestinationName] = useState("");
   const [cultureLabel, setCultureLabel] = useState("");
   const [approvalTitle, setApprovalTitle] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [leadName, setLeadName] = useState("");
   const [editKind, setEditKind] = useState<EditKind | null>(null);
   const [editDraft, setEditDraft] = useState<EditDraft>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -171,6 +198,19 @@ export default function Dashboard({
     setEndpointInput(syncDiagnostics?.endpoint ?? "");
   }, [syncDiagnostics?.endpoint]);
 
+  if (!selected) {
+    return (
+      <main className="dashboard-shell">
+        <section className="panel card empty-dashboard" aria-label="Empty planner workspace">
+          <p className="eyebrow">Bliss Planner</p>
+          <h1>No wedding workspace selected</h1>
+          <p className="note">Create or import a wedding workspace to unlock the planner dashboard.</p>
+        </section>
+      </main>
+    );
+  }
+
+  const selectedTasks = state.tasks.filter((task) => task.weddingId === selected.id);
   const planned = selected.budget.lines.reduce((sum, l) => sum + l.planned, 0);
   const spent = selected.budget.lines.reduce((sum, l) => sum + l.actual, 0);
   const openTasks = selectedTasks.filter((t) => t.status !== "DONE").length;
@@ -197,6 +237,15 @@ export default function Dashboard({
   const selectedVenues = state.venues.filter((venue) => venue.weddingId === selected.id);
   const selectedDestinations = state.destinations.filter((destination) => destination.weddingId === selected.id);
   const selectedApprovals = state.clientApprovals.filter((approval) => approval.weddingId === selected.id);
+  const selectedGuests = state.guests.filter((guest) => guest.weddingId === selected.id);
+  const selectedSeating = state.seatingTables.filter((table) => table.weddingId === selected.id);
+  const pendingApprovals = selectedApprovals.filter((approval) => approval.state !== "APPROVED");
+  const activeLeads = state.pipelineLeads.filter((lead) => !["WON", "LOST", "ARCHIVED"].includes(lead.status ?? "NEW"));
+  const totalPipeline = activeLeads.reduce((sum, lead) => sum + Number(lead.projectedBudget ?? 0), 0);
+  const rsvpYes = selectedGuests.filter((guest) => guest.rsvpStatus === "YES").length;
+  const rsvpPending = selectedGuests.filter((guest) => ["NO_RESPONSE", "MAYBE", "INVITED"].includes(guest.rsvpStatus)).length;
+  const seatedGuestIds = new Set(selectedSeating.flatMap((table) => table.guestIds));
+  const seatedCount = selectedGuests.filter((guest) => seatedGuestIds.has(guest.id)).length;
 
   const impactRows: ImpactRow[] = [
     {
@@ -407,6 +456,47 @@ export default function Dashboard({
       linkedTaskIds: []
     });
     setApprovalTitle("");
+  }
+
+  function addInvite() {
+    const email = inviteEmail.trim();
+    if (!email) return;
+    onInviteTeamMember({ email, role: "PLANNER", portalAccess: "FULL_WORKSPACE" });
+    setInviteEmail("");
+  }
+
+  function addGuest() {
+    const name = guestName.trim();
+    if (!name) return;
+    onUpsertGuest({
+      weddingId: selected.id,
+      householdId: `household-${name.toLowerCase().replace(/\s+/g, "-")}`,
+      name,
+      groupName: selected.guestGroups[0]?.name ?? "Guests",
+      rsvpStatus: "INVITED",
+      mealPreference: "STANDARD"
+    });
+    setGuestName("");
+  }
+
+  function addLead() {
+    const clientName = leadName.trim();
+    if (!clientName) return;
+    onUpsertPipelineLead({
+      clientName,
+      email: "newlead@example.com",
+      source: "REFERRAL",
+      status: "NEW",
+      quoteStatus: "NOT_SENT",
+      projectedBudget: 120000,
+      currency: selected.currency,
+      preferredDate: selected.date,
+      destinationCity: selected.destination,
+      nextAction: "Schedule discovery call",
+      followUpAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      confidenceScore: 0.45
+    });
+    setLeadName("");
   }
 
   function openEditor(kind: EditKind, draft: EditDraft) {
@@ -693,6 +783,55 @@ export default function Dashboard({
         </div>
       </section>
 
+      <section className="panel card team-panel" aria-label="Team and portal access">
+        <div className="section-header">
+          <div>
+            <h3>Team and portal access</h3>
+            <p className="note">Invite planners, clients, vendors, and production users with role-based portal access.</p>
+          </div>
+          <span className="sync-chip">{state.users.length} users · {state.invites.length} invites</span>
+        </div>
+        <div className="inline-create">
+          <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Invite team or portal user" aria-label="Invite email" />
+          <button className="btn btn-soft" onClick={addInvite}>Send invite</button>
+        </div>
+        <div className="team-grid">
+          {state.users.map((user) => (
+            <article key={user.id} className="access-card">
+              <strong>{user.name}</strong>
+              <p>{user.email}</p>
+              <div className="row-actions">
+                <select
+                  value={user.role}
+                  aria-label={`Role for ${user.name}`}
+                  onChange={(e) => onUpdateUserAccess({ userId: user.id, role: e.target.value as AccountRole, portalAccess: user.portalAccess })}
+                >
+                  {["OWNER", "PLANNER", "PRODUCTION", "CLIENT", "VENDOR", "VIEWER"].map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+                <select
+                  value={user.portalAccess}
+                  aria-label={`Portal access for ${user.name}`}
+                  onChange={(e) => onUpdateUserAccess({ userId: user.id, role: user.role, portalAccess: e.target.value as AppState["users"][number]["portalAccess"] })}
+                >
+                  {["NONE", "CLIENT_PORTAL", "VENDOR_PORTAL", "FULL_WORKSPACE"].map((access) => (
+                    <option key={access} value={access}>{access.replace("_", " ")}</option>
+                  ))}
+                </select>
+              </div>
+            </article>
+          ))}
+          {state.invites.slice(0, 3).map((invite) => (
+            <article key={invite.id} className="access-card muted-card">
+              <strong>{invite.email}</strong>
+              <p>{invite.role} · {invite.portalAccess.replace("_", " ")} · {invite.status}</p>
+              <span className="pill todo">expires {formatDate(invite.expiresAt, state.settings.timezone)}</span>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="controls panel card">
         <label className="wedding-picker">
           Wedding Workspace
@@ -916,6 +1055,53 @@ export default function Dashboard({
             <p className="note">No sync conflicts detected in the latest run.</p>
           )}
         </div>
+      </section>
+
+      <section className="grid two equal">
+        <article className="panel card approval-queue-card">
+          <div className="section-header">
+            <div>
+              <h3>Planner approval queue</h3>
+              <p className="note">Approve, escalate, and capture client-facing decisions with comments and file references.</p>
+            </div>
+            <span className="sync-chip">{pendingApprovals.length} pending</span>
+          </div>
+          <div className="record-list">
+            {selectedApprovals.map((approval) => (
+              <div key={approval.id} className="record-row stacked-row">
+                <div>
+                  <strong>{approval.title}</strong>
+                  <p>{approval.owner} · {approval.state.replace("_", " ")} · due {formatDate(approval.dueAt, selected.timezone)}</p>
+                  <p>{approval.comments?.[approval.comments.length - 1]?.body ?? "No client comment yet."}</p>
+                  <small>{approval.files?.length ?? 0} files · {approval.history?.length ?? 0} history entries</small>
+                </div>
+                <div className="record-actions">
+                  <button className="btn btn-soft" onClick={() => onDecideClientApproval({ approvalId: approval.id, state: "APPROVED", note: "Approved from planner queue." })}>Approve</button>
+                  <button className="btn btn-ghost" onClick={() => onDecideClientApproval({ approvalId: approval.id, state: "ESCALATION", note: "Needs planner escalation before client sign-off." })}>Escalate</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel card analytics-card">
+          <div className="section-header">
+            <div>
+              <h3>Analytics and monitoring</h3>
+              <p className="note">Operational health, sync protection, pipeline movement, and client cycle signals.</p>
+            </div>
+            <span className="sync-chip">{state.analytics.length} signals</span>
+          </div>
+          <div className="analytics-grid">
+            {state.analytics.map((metric) => (
+              <div key={metric.id} className={`analytics-tile analytics-${(metric.status ?? "WATCH").toLowerCase()}`}>
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+                <p>{metric.trend}</p>
+              </div>
+            ))}
+          </div>
+        </article>
       </section>
 
       <section className="grid four metrics-grid">
@@ -1430,6 +1616,164 @@ export default function Dashboard({
             </div>
           </aside>
         ) : null}
+      </section>
+
+      <section className="grid three detail-module-grid" aria-label="Vendor venue destination detail modules">
+        <article className="panel card detail-module">
+          <h3>Vendor detail module</h3>
+          {selectedVendors.map((vendor) => (
+            <div key={vendor.id} className="detail-row">
+              <strong>{vendor.name}</strong>
+              <p>{vendor.contactName ?? "No contact"} · {vendor.contactEmail ?? "No email"}</p>
+              <div className="portal-grid mini-detail-grid">
+                <div><span>Contract</span><strong>{vendor.contractStatus ?? "DRAFT"}</strong></div>
+                <div><span>Payment</span><strong>{vendor.paymentStatus ?? "PENDING"}</strong></div>
+                <div><span>Files</span><strong>{vendor.files?.length ?? 0}</strong></div>
+                <div><span>Risk</span><strong>{vendor.status === "AT_RISK" ? "High" : "Watch"}</strong></div>
+              </div>
+              <p>{vendor.logisticsNotes ?? vendor.notes}</p>
+              <small>{vendor.riskNotes ?? "No open risk note."}</small>
+            </div>
+          ))}
+        </article>
+
+        <article className="panel card detail-module">
+          <h3>Venue detail module</h3>
+          {selectedVenues.map((venue) => (
+            <div key={venue.id} className="detail-row">
+              <strong>{venue.name}</strong>
+              <p>{venue.city}, {venue.country} · access {venue.accessWindow ?? "TBD"}</p>
+              <div className="portal-grid mini-detail-grid">
+                <div><span>Permit</span><strong>{venue.permitStatus ?? "PENDING"}</strong></div>
+                <div><span>Capacity</span><strong>{venue.capacity}</strong></div>
+                <div><span>Curfew</span><strong>{venue.curfew}</strong></div>
+                <div><span>Files</span><strong>{venue.files?.length ?? 0}</strong></div>
+              </div>
+              <p>{venue.logisticsNotes ?? venue.notes}</p>
+              <small>{venue.riskNotes ?? "No open risk note."}</small>
+            </div>
+          ))}
+        </article>
+
+        <article className="panel card detail-module">
+          <h3>Destination detail module</h3>
+          {selectedDestinations.map((destination) => (
+            <div key={destination.id} className="detail-row">
+              <strong>{destination.name}</strong>
+              <p>{destination.region} · travel risk {destination.travelRisk}</p>
+              <div className="portal-grid mini-detail-grid">
+                <div><span>Visa</span><strong>{destination.visaNotes ? "Tracked" : "Missing"}</strong></div>
+                <div><span>Permit</span><strong>{destination.permitNotes ? "Tracked" : "Open"}</strong></div>
+                <div><span>Weather</span><strong>{destination.weatherNotes ? "Briefed" : "Open"}</strong></div>
+                <div><span>Files</span><strong>{destination.files?.length ?? 0}</strong></div>
+              </div>
+              <p>{destination.logisticsNotes ?? destination.culturalNotes}</p>
+              <small>{destination.riskNotes ?? "No open risk note."}</small>
+            </div>
+          ))}
+        </article>
+      </section>
+
+      <section className="grid two equal">
+        <article className="panel card guest-module" aria-label="Guest RSVP and seating foundation">
+          <div className="section-header">
+            <div>
+              <h3>Guest RSVP and seating</h3>
+              <p className="note">{rsvpYes} yes · {rsvpPending} pending · {seatedCount}/{selectedGuests.length} seated.</p>
+            </div>
+            <span className="sync-chip">{selectedGuests.length} guests</span>
+          </div>
+          <div className="inline-create">
+            <input value={guestName} onChange={(e) => setGuestName(e.target.value)} placeholder="Add guest" aria-label="Add guest" />
+            <button className="btn btn-soft" onClick={addGuest}>Add guest</button>
+          </div>
+          <div className="record-list">
+            {selectedGuests.map((guest) => (
+              <div key={guest.id} className="record-row">
+                <div>
+                  <strong>{guest.name}</strong>
+                  <p>{guest.groupName} · {guest.rsvpStatus.replace("_", " ")} · {guest.mealPreference}</p>
+                </div>
+                <div className="record-actions">
+                  <select
+                    value={guest.rsvpStatus}
+                    aria-label={`RSVP for ${guest.name}`}
+                    onChange={(e) => onUpsertGuest({ ...guest, rsvpStatus: e.target.value as RsvpStatus })}
+                  >
+                    {["INVITED", "YES", "NO", "MAYBE", "NO_RESPONSE"].map((status) => (
+                      <option key={status} value={status}>{status.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={guest.mealPreference}
+                    aria-label={`Meal for ${guest.name}`}
+                    onChange={(e) => onUpsertGuest({ ...guest, mealPreference: e.target.value as MealPreference })}
+                  >
+                    {["VEGETARIAN", "STANDARD", "SEAFOOD", "VEGAN", "JAIN", "KOSHER", "HALAL", "OTHER"].map((meal) => (
+                      <option key={meal} value={meal}>{meal}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel card seating-module">
+          <h3>Seating zones</h3>
+          <div className="record-list">
+            {selectedSeating.map((table) => (
+              <div key={table.id} className="record-row">
+                <div>
+                  <strong>{table.name}</strong>
+                  <p>{table.zone} · {table.guestIds.length}/{table.capacity} seated</p>
+                  <small>{table.notes}</small>
+                </div>
+                <button
+                  className="btn btn-soft"
+                  onClick={() =>
+                    onUpsertSeatingTable({
+                      ...table,
+                      guestIds: Array.from(new Set([...table.guestIds, selectedGuests.find((guest) => !table.guestIds.includes(guest.id))?.id].filter(Boolean) as string[]))
+                    })
+                  }
+                >
+                  Fill next seat
+                </button>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <section className="panel card crm-panel" aria-label="Business development CRM">
+        <div className="section-header">
+          <div>
+            <h3>Business development CRM</h3>
+            <p className="note">Track inquiries, lead source, quote status, follow-ups, and projected conversion.</p>
+          </div>
+          <span className="sync-chip">{activeLeads.length} active · {currency(totalPipeline, selected.currency)} pipeline</span>
+        </div>
+        <div className="inline-create">
+          <input value={leadName} onChange={(e) => setLeadName(e.target.value)} placeholder="Add inquiry" aria-label="Add inquiry" />
+          <button className="btn btn-soft" onClick={addLead}>Add lead</button>
+        </div>
+        <div className="crm-grid">
+          {state.pipelineLeads.map((lead) => (
+            <article key={lead.id} className="access-card">
+              <strong>{lead.clientName}</strong>
+              <p>{lead.destinationCity ?? selected.destination} · {lead.source ?? "OTHER"} · {lead.status ?? "NEW"}</p>
+              <p>{String(lead.quoteStatus ?? "NOT_SENT").replace("_", " ")} · follow up {formatDate(lead.followUpAt ?? selected.date, state.settings.timezone)}</p>
+              <div className="mini-meter" aria-hidden="true">
+                <span style={{ width: `${Math.round(Number(lead.confidenceScore ?? 0.4) * 100)}%` }} />
+              </div>
+              <div className="row-actions">
+                <button className="btn btn-soft" onClick={() => onUpsertPipelineLead({ ...lead, status: "QUOTING", quoteStatus: "SENT", confidenceScore: Math.min(0.95, Number(lead.confidenceScore ?? 0.4) + 0.08) })}>Send quote</button>
+                <button className="btn btn-ghost" onClick={() => onUpsertPipelineLead({ ...lead, status: "WON", quoteStatus: "ACCEPTED", confidenceScore: 1 })}>Mark won</button>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="grid two equal">

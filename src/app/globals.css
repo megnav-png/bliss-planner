@@ -1309,6 +1309,98 @@ button:disabled {
   gap: 10px;
 }
 
+.team-panel,
+.approval-queue-card,
+.analytics-card,
+.guest-module,
+.seating-module,
+.crm-panel,
+.detail-module {
+  min-width: 0;
+}
+
+.team-grid,
+.crm-grid,
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.access-card,
+.analytics-tile,
+.detail-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fffaf4;
+  padding: 12px;
+  min-width: 0;
+}
+
+.access-card p,
+.analytics-tile p,
+.detail-row p {
+  margin: 5px 0;
+}
+
+.muted-card {
+  background: #f7f3eb;
+}
+
+.analytics-tile span,
+.detail-row span,
+.mini-detail-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.analytics-tile strong {
+  display: block;
+  color: var(--teal-deep);
+  font-size: 20px;
+  margin-top: 4px;
+}
+
+.analytics-good {
+  border-color: #b8e2ed;
+}
+
+.analytics-watch {
+  border-color: #f4d0a7;
+}
+
+.analytics-risk {
+  border-color: #f3c9c9;
+}
+
+.detail-module-grid {
+  align-items: start;
+}
+
+.detail-module {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-row {
+  display: grid;
+  gap: 8px;
+}
+
+.mini-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stacked-row {
+  display: grid;
+  gap: 10px;
+}
+
 .portal-hero {
   display: flex;
   align-items: flex-start;
@@ -1431,6 +1523,12 @@ button:disabled {
   }
 
   .grid.three {
+    grid-template-columns: 1fr;
+  }
+
+  .team-grid,
+  .crm-grid,
+  .analytics-grid {
     grid-template-columns: 1fr;
   }
 

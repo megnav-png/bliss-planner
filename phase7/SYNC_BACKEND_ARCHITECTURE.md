@@ -20,6 +20,7 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
    - Hosted route handlers are available under `/api/sync/*` and `/api/devices/*`.
    - Render persistent disk mode: set `BLISS_RELAY_STORE_BACKEND=file` and `BLISS_RELAY_STORE_DIR=/var/data/bliss-relay`.
    - Postgres mode: set `BLISS_RELAY_STORE_BACKEND=postgres` and `BLISS_RELAY_DATABASE_URL`.
+   - Health verification command: `BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_RELAY_TOKEN=<token> npm run sync:relay:health`.
 
 3. **Identity and device continuity**
    - Planner account owns one or more workspaces.
@@ -46,6 +47,8 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 - Offer regional storage selection during workspace setup for global planners.
 - Add "delete cloud relay data" as a hard product requirement before paid release.
 - Require `BLISS_RELAY_SECRET` and `BLISS_RELAY_TOKEN` in production.
+- Increment `BLISS_RELAY_TOKEN_VERSION` whenever `BLISS_RELAY_TOKEN` is rotated.
+- Keep audit logs for at least `BLISS_RELAY_AUDIT_RETENTION_DAYS=90` and encrypted event packages for `BLISS_RELAY_EVENT_RETENTION_DAYS=365` unless a planner chooses a stricter regional policy.
 
 ## Implementation Order
 1. Add local entity revisions and updated-at metadata to every wedding, task, readiness, cultural, client, vendor, and venue entity.
@@ -64,4 +67,12 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 - Production version now has a hosted route-handler relay, planner account seed model, pairing, revocation, conflict-review surface, and delete-cloud-data flow.
 - Durable production hosting can use `render.yaml` persistent disk settings or the Postgres adapter with `BLISS_RELAY_STORE_BACKEND=postgres`.
 - Production auth boundary now supports Google/OIDC configuration through `/api/auth/*` and reports missing provider settings in-app.
-- Production hardening still needs user acceptance around regional storage selection, token rotation policy, and audit retention policy.
+- Hosted relay health now reports durability, auth requirement, token version, retention windows, audit count, and a rotation plan.
+- Production hardening still needs user acceptance around regional storage selection and paid-release migration from file-store relay to Postgres/object storage if multi-tenant scale increases.
+
+## Token Rotation Plan
+1. Generate a new `BLISS_RELAY_TOKEN` in the password manager.
+2. Increase `BLISS_RELAY_TOKEN_VERSION` by 1 in Render.
+3. Deploy and verify with `BLISS_RELAY_TOKEN=<new token> npm run sync:relay:health`.
+4. Re-pair trusted devices that use the relay token directly, or update managed device configuration.
+5. Review relay audit logs and revoke devices that did not rotate within the chosen grace period.

@@ -1,4 +1,17 @@
-import { AppState, ClientApproval, CulturalChecklistItem, DestinationProfile, Vendor, Venue } from "./types";
+import {
+  AccountRole,
+  AppState,
+  ClientApproval,
+  ClientApprovalState,
+  CulturalChecklistItem,
+  DestinationProfile,
+  Guest,
+  PipelineLead,
+  PortalAccess,
+  SeatingTable,
+  Vendor,
+  Venue
+} from "./types";
 import type { ManagedAuthStatus } from "./server/managedAuth";
 import { seedState } from "./fakeData";
 import { loadPersistedState, saveState } from "./storage";
@@ -72,6 +85,16 @@ export type ClientApprovalDraft = Omit<ClientApproval, "id" | "linkedTaskIds"> &
   linkedTaskIds?: string[];
 };
 
+export type TeamInviteDraft = {
+  email: string;
+  role: AccountRole;
+  portalAccess: PortalAccess;
+};
+
+export type GuestDraft = Omit<Guest, "id"> & { id?: string };
+export type SeatingTableDraft = Omit<SeatingTable, "id"> & { id?: string };
+export type PipelineLeadDraft = Omit<PipelineLead, "id"> & { id?: string };
+
 type PlannerStateResult = {
   ok: boolean;
 };
@@ -98,6 +121,7 @@ function ensureState(value: AppState | null | undefined): AppState {
     ...value,
     workspace: value.workspace ?? seedState.workspace,
     users: value.users ?? seedState.users,
+    invites: value.invites ?? seedState.invites,
     session: value.session ?? seedState.session,
     profile: value.profile,
     settings: value.settings,
@@ -107,8 +131,31 @@ function ensureState(value: AppState | null | undefined): AppState {
     venues: value.venues ?? [],
     destinations: value.destinations ?? [],
     clientApprovals: value.clientApprovals ?? [],
+    guests: value.guests ?? seedState.guests,
+    seatingTables: value.seatingTables ?? seedState.seatingTables,
+    pipelineLeads: value.pipelineLeads ?? seedState.pipelineLeads,
+    auditLogs: value.auditLogs ?? seedState.auditLogs,
+    analytics: value.analytics ?? seedState.analytics,
     activeWeddingId: value.activeWeddingId ?? seedState.activeWeddingId,
     onboarded: value.onboarded ?? seedState.onboarded
+  };
+}
+
+function addAudit(state: AppState, action: string, entity: string, entityId: string, note: string): AppState {
+  return {
+    ...state,
+    auditLogs: [
+      {
+        id: createId("audit"),
+        actor: state.profile.name,
+        action,
+        entity,
+        entityId,
+        createdAt: new Date().toISOString(),
+        note
+      },
+      ...(state.auditLogs ?? [])
+    ].slice(0, 50)
   };
 }
 
@@ -434,6 +481,111 @@ export async function deleteClientApproval(approvalId: string): Promise<AppState
   const current = await readState();
   const nextState = { ...current, clientApprovals: current.clientApprovals.filter((item) => item.id !== approvalId) };
   recordSyncEvent({ entity: "client_approval", entityId: approvalId, operation: "DELETE", payload: { id: approvalId } });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function decideClientApproval(payload: { approvalId: string; state: ClientApprovalState; note: string }): Promise<AppState> {
+  const current = await readState();
+  let changed: ClientApproval | undefined;
+  const nextApprovals = current.clientApprovals.map((approval) => {
+    if (approval.id !== payload.approvalId) return approval;
+    changed = {
+      ...approval,
+      state: payload.state,
+      decisionNote: payload.note,
+      decidedAt: new Date().toISOString(),
+      comments: [
+        ...(approval.comments ?? []),
+        { id: createId("comment"), author: current.profile.name, body: payload.note, createdAt: new Date().toISOString() }
+      ],
+      history: [
+        ...(approval.history ?? []),
+        { id: createId("history"), state: payload.state, actor: current.profile.name, createdAt: new Date().toISOString(), note: payload.note }
+      ]
+    };
+    return changed;
+  });
+  const nextState = addAudit({ ...current, clientApprovals: nextApprovals }, `APPROVAL_${payload.state}`, "client_approval", payload.approvalId, payload.note);
+  if (changed) recordSyncEvent({ entity: "client_approval", entityId: changed.id, operation: "UPSERT", payload: changed });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function inviteTeamMember(draft: TeamInviteDraft): Promise<AppState> {
+  const current = await readState();
+  const invite = {
+    id: createId("invite"),
+    workspaceId: current.workspace.id,
+    email: draft.email,
+    role: draft.role,
+    portalAccess: draft.portalAccess,
+    status: "PENDING" as const,
+    invitedBy: current.profile.name,
+    invitedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+  };
+  const nextState = addAudit({ ...current, invites: [invite, ...(current.invites ?? [])] }, "TEAM_INVITE_CREATED", "team_invite", invite.id, `Invited ${invite.email}`);
+  recordSyncEvent({ entity: "team_invite", entityId: invite.id, operation: "UPSERT", payload: invite });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function updateUserAccess(payload: { userId: string; role: AccountRole; portalAccess: PortalAccess }): Promise<AppState> {
+  const current = await readState();
+  const users = current.users.map((user) =>
+    user.id === payload.userId ? { ...user, role: payload.role, portalAccess: payload.portalAccess, status: "ACTIVE" as const } : user
+  );
+  const nextState = addAudit({ ...current, users }, "USER_ACCESS_UPDATED", "account_user", payload.userId, `Updated user access to ${payload.role}`);
+  recordSyncEvent({ entity: "account_user", entityId: payload.userId, operation: "UPSERT", payload });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertGuest(draft: GuestDraft): Promise<AppState> {
+  const current = await readState();
+  const guest = { ...draft, id: draft.id || createId("guest") };
+  const exists = current.guests.some((item) => item.id === guest.id);
+  const nextState = addAudit(
+    { ...current, guests: exists ? current.guests.map((item) => (item.id === guest.id ? guest : item)) : [...current.guests, guest] },
+    "GUEST_UPDATED",
+    "guest",
+    guest.id,
+    `${guest.name} RSVP ${guest.rsvpStatus}`
+  );
+  recordSyncEvent({ entity: "guest", entityId: guest.id, operation: "UPSERT", payload: guest });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertSeatingTable(draft: SeatingTableDraft): Promise<AppState> {
+  const current = await readState();
+  const table = { ...draft, id: draft.id || createId("seat") };
+  const exists = current.seatingTables.some((item) => item.id === table.id);
+  const nextState = addAudit(
+    { ...current, seatingTables: exists ? current.seatingTables.map((item) => (item.id === table.id ? table : item)) : [...current.seatingTables, table] },
+    "SEATING_UPDATED",
+    "seating_table",
+    table.id,
+    `${table.name} in ${table.zone}`
+  );
+  recordSyncEvent({ entity: "seating_table", entityId: table.id, operation: "UPSERT", payload: table });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertPipelineLead(draft: PipelineLeadDraft): Promise<AppState> {
+  const current = await readState();
+  const lead = { ...draft, id: draft.id || createId("lead") };
+  const exists = current.pipelineLeads.some((item) => item.id === lead.id);
+  const nextState = addAudit(
+    { ...current, pipelineLeads: exists ? current.pipelineLeads.map((item) => (item.id === lead.id ? lead : item)) : [...current.pipelineLeads, lead] },
+    "PIPELINE_LEAD_UPDATED",
+    "pipeline_lead",
+    lead.id,
+    `${lead.clientName} moved to ${lead.status}`
+  );
+  recordSyncEvent({ entity: "pipeline_lead", entityId: lead.id, operation: "UPSERT", payload: lead });
   await writeState(nextState);
   return nextState;
 }

@@ -12,6 +12,7 @@ import {
   getPlannerAuthStatus,
   getPlannerSyncDiagnostics,
   importPlannerSyncPackage,
+  inviteTeamMember,
   OnboardingPayload,
   resetPlannerState,
   runPlannerSync,
@@ -23,6 +24,11 @@ import {
   startPlannerDevicePairing,
   clearPlannerSyncState,
   toggleTask,
+  updateUserAccess,
+  decideClientApproval,
+  upsertGuest,
+  upsertPipelineLead,
+  upsertSeatingTable,
   updateGuestTarget,
   upsertClientApproval,
   upsertCulturalChecklistItem,
@@ -32,6 +38,10 @@ import {
   ClientApprovalDraft,
   CulturalChecklistDraft,
   DestinationDraft,
+  GuestDraft,
+  PipelineLeadDraft,
+  SeatingTableDraft,
+  TeamInviteDraft,
   VendorDraft,
   VenueDraft
 } from "./repository";
@@ -167,6 +177,30 @@ export function useUpsertClientApproval() {
 
 export function useDeleteClientApproval() {
   return useStateMutation<string>(deleteClientApproval);
+}
+
+export function useDecideClientApproval() {
+  return useStateMutation<{ approvalId: string; state: AppState["clientApprovals"][number]["state"]; note: string }>(decideClientApproval);
+}
+
+export function useInviteTeamMember() {
+  return useStateMutation<TeamInviteDraft>(inviteTeamMember);
+}
+
+export function useUpdateUserAccess() {
+  return useStateMutation<{ userId: string; role: AppState["users"][number]["role"]; portalAccess: AppState["users"][number]["portalAccess"] }>(updateUserAccess);
+}
+
+export function useUpsertGuest() {
+  return useStateMutation<GuestDraft>(upsertGuest);
+}
+
+export function useUpsertSeatingTable() {
+  return useStateMutation<SeatingTableDraft>(upsertSeatingTable);
+}
+
+export function useUpsertPipelineLead() {
+  return useStateMutation<PipelineLeadDraft>(upsertPipelineLead);
 }
 
 export function useSyncDiagnostics() {

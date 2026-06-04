@@ -11,17 +11,41 @@ const POSTGRES_URL = process.env.BLISS_RELAY_DATABASE_URL || process.env.DATABAS
 const DEFAULT_WORKSPACE = "default-workspace";
 const PAIRING_TTL_MS = Number(process.env.BLISS_RELAY_PAIRING_TTL_MS || 10 * 60 * 1000);
 const POSTGRES_ROW_ID = "primary";
+const AUDIT_RETENTION_DAYS = Number(process.env.BLISS_RELAY_AUDIT_RETENTION_DAYS || 90);
+const EVENT_RETENTION_DAYS = Number(process.env.BLISS_RELAY_EVENT_RETENTION_DAYS || 365);
+const TOKEN_VERSION = Number(process.env.BLISS_RELAY_TOKEN_VERSION || 1);
+
+type RelayAuditAction =
+  | "HEALTH_READ"
+  | "PAIRING_STARTED"
+  | "PAIRING_CLAIMED"
+  | "EVENTS_PUSHED"
+  | "EVENTS_PULLED"
+  | "DEVICE_REVOKED"
+  | "WORKSPACE_DELETED"
+  | "RETENTION_PRUNED";
+
+type RelayWorkspace = {
+  encryptedEvents: Array<{ cursor: number; deviceId: string; envelope: EncryptedEnvelope; createdAt?: string }>;
+  devices: Record<string, RelayDevice>;
+  pairingCodes: Record<string, { deviceId: string; deviceName: string; createdAt: string; expiresAt: string }>;
+  auditLogs: RelayAuditLog[];
+  retentionDays: number;
+  tokenVersion: number;
+};
+
+type RelayAuditLog = {
+  id: string;
+  action: RelayAuditAction;
+  at: string;
+  deviceId?: string;
+  cursor?: number;
+  metadata?: Record<string, string | number | boolean | null>;
+};
 
 type RelayStore = {
   cursor: number;
-  workspaces: Record<
-    string,
-    {
-      encryptedEvents: Array<{ cursor: number; deviceId: string; envelope: EncryptedEnvelope }>;
-      devices: Record<string, RelayDevice>;
-      pairingCodes: Record<string, { deviceId: string; deviceName: string; createdAt: string; expiresAt: string }>;
-    }
-  >;
+  workspaces: Record<string, RelayWorkspace>;
 };
 
 type EncryptedEnvelope = {
@@ -49,15 +73,22 @@ type StoreAdapter = {
 
 let postgresPool: any | null = null;
 
+function emptyWorkspace(): RelayWorkspace {
+  return {
+    encryptedEvents: [],
+    devices: {},
+    pairingCodes: {},
+    auditLogs: [],
+    retentionDays: AUDIT_RETENTION_DAYS,
+    tokenVersion: TOKEN_VERSION
+  };
+}
+
 function emptyStore(): RelayStore {
   return {
     cursor: 0,
     workspaces: {
-      [DEFAULT_WORKSPACE]: {
-        encryptedEvents: [],
-        devices: {},
-        pairingCodes: {}
-      }
+      [DEFAULT_WORKSPACE]: emptyWorkspace()
     }
   };
 }
@@ -153,8 +184,14 @@ async function saveStore(store: RelayStore) {
 
 function workspace(store: RelayStore, workspaceId = DEFAULT_WORKSPACE) {
   if (!store.workspaces[workspaceId]) {
-    store.workspaces[workspaceId] = { encryptedEvents: [], devices: {}, pairingCodes: {} };
+    store.workspaces[workspaceId] = emptyWorkspace();
   }
+  store.workspaces[workspaceId].encryptedEvents ||= [];
+  store.workspaces[workspaceId].devices ||= {};
+  store.workspaces[workspaceId].pairingCodes ||= {};
+  store.workspaces[workspaceId].auditLogs ||= [];
+  store.workspaces[workspaceId].retentionDays ||= AUDIT_RETENTION_DAYS;
+  store.workspaces[workspaceId].tokenVersion ||= TOKEN_VERSION;
   return store.workspaces[workspaceId];
 }
 
@@ -190,6 +227,48 @@ function cleanupExpiredPairingCodes(space: ReturnType<typeof workspace>) {
   }
 }
 
+function appendAudit(
+  space: ReturnType<typeof workspace>,
+  action: RelayAuditAction,
+  options: { deviceId?: string; cursor?: number; metadata?: RelayAuditLog["metadata"] } = {}
+) {
+  space.auditLogs.push({
+    id: randomUUID(),
+    action,
+    at: new Date().toISOString(),
+    deviceId: options.deviceId,
+    cursor: options.cursor,
+    metadata: options.metadata
+  });
+}
+
+function retentionCutoff(days: number) {
+  return Date.now() - days * 24 * 60 * 60 * 1000;
+}
+
+function applyRetention(space: ReturnType<typeof workspace>) {
+  const beforeAudit = space.auditLogs.length;
+  const beforeEvents = space.encryptedEvents.length;
+  const auditCutoff = retentionCutoff(AUDIT_RETENTION_DAYS);
+  const eventCutoff = retentionCutoff(EVENT_RETENTION_DAYS);
+
+  space.auditLogs = space.auditLogs.filter((entry) => new Date(entry.at).getTime() >= auditCutoff);
+  space.encryptedEvents = space.encryptedEvents.filter((entry) => {
+    if (!entry.createdAt) return true;
+    return new Date(entry.createdAt).getTime() >= eventCutoff;
+  });
+  space.retentionDays = AUDIT_RETENTION_DAYS;
+  space.tokenVersion = TOKEN_VERSION;
+
+  const prunedAudit = beforeAudit - space.auditLogs.length;
+  const prunedEvents = beforeEvents - space.encryptedEvents.length;
+  if (prunedAudit || prunedEvents) {
+    appendAudit(space, "RETENTION_PRUNED", {
+      metadata: { prunedAudit, prunedEvents, auditRetentionDays: AUDIT_RETENTION_DAYS, eventRetentionDays: EVENT_RETENTION_DAYS }
+    });
+  }
+}
+
 function authTokenFromHeaders(headers: Headers) {
   const authorization = headers.get("authorization") || "";
   const headerToken = headers.get("x-bliss-relay-token") || "";
@@ -209,6 +288,10 @@ export async function hostedRelayHealth(workspaceId = DEFAULT_WORKSPACE) {
   const store = await loadStore();
   const space = workspace(store, workspaceId);
   cleanupExpiredPairingCodes(space);
+  applyRetention(space);
+  appendAudit(space, "HEALTH_READ", {
+    metadata: { durable: storeAdapter.durable, storeBackend: storeAdapter.mode, tokenVersion: TOKEN_VERSION }
+  });
   await saveStore(store);
   return {
     ok: true,
@@ -217,14 +300,32 @@ export async function hostedRelayHealth(workspaceId = DEFAULT_WORKSPACE) {
     encryptedEventCount: space.encryptedEvents.length,
     deviceCount: Object.keys(space.devices).length,
     pendingPairingCount: Object.keys(space.pairingCodes).length,
+    auditLogCount: space.auditLogs.length,
+    latestAuditAt: space.auditLogs.at(-1)?.at ?? null,
     authRequired: Boolean(AUTH_TOKEN),
+    tokenVersion: TOKEN_VERSION,
+    retention: {
+      auditDays: AUDIT_RETENTION_DAYS,
+      eventDays: EVENT_RETENTION_DAYS
+    },
     storeBackend: storeAdapter.mode,
     storeLocation: storeAdapter.location,
     durable: storeAdapter.durable,
+    rotationPlan: [
+      "Create a new BLISS_RELAY_TOKEN and increment BLISS_RELAY_TOKEN_VERSION.",
+      "Deploy the new token, then re-pair trusted devices or update managed device configuration.",
+      "Review audit logs for stale or revoked devices, then revoke any device that did not rotate."
+    ],
     requiredProductionEnv:
       storeAdapter.mode === "postgres"
         ? ["BLISS_RELAY_STORE_BACKEND=postgres", "BLISS_RELAY_DATABASE_URL", "BLISS_RELAY_SECRET", "BLISS_RELAY_TOKEN"]
-        : ["BLISS_RELAY_STORE_DIR=/var/data/bliss-relay", "BLISS_RELAY_SECRET", "BLISS_RELAY_TOKEN"],
+        : [
+            "BLISS_RELAY_STORE_DIR=/var/data/bliss-relay",
+            "BLISS_RELAY_SECRET",
+            "BLISS_RELAY_TOKEN",
+            "BLISS_RELAY_TOKEN_VERSION",
+            "BLISS_RELAY_AUDIT_RETENTION_DAYS"
+          ],
     mode: "next-hosted-aes-256-gcm-durable-relay"
   };
 }
@@ -242,6 +343,11 @@ export async function hostedPairStart(payload: Record<string, any>) {
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + PAIRING_TTL_MS).toISOString()
   };
+  appendAudit(space, "PAIRING_STARTED", {
+    deviceId,
+    metadata: { deviceName: space.pairingCodes[pairingCode].deviceName }
+  });
+  applyRetention(space);
   await saveStore(store);
   return { ok: true, workspaceId, pairingCode, expiresAt: space.pairingCodes[pairingCode].expiresAt };
 }
@@ -264,6 +370,8 @@ export async function hostedPairClaim(payload: Record<string, any>) {
     revokedAt: null
   };
   delete space.pairingCodes[pairingCode];
+  appendAudit(space, "PAIRING_CLAIMED", { deviceId, metadata: { deviceName: space.devices[deviceId].name } });
+  applyRetention(space);
   await saveStore(store);
   return { ok: true, workspaceId, deviceId };
 }
@@ -292,10 +400,17 @@ export async function hostedPush(payload: Record<string, any>) {
     space.encryptedEvents.push({
       cursor: store.cursor,
       deviceId,
+      createdAt: new Date().toISOString(),
       envelope: encryptJson({ ...change, revision: store.cursor, source: "remote", status: "SYNCED" })
     });
   }
   space.devices[deviceId].lastSeenAt = new Date().toISOString();
+  appendAudit(space, "EVENTS_PUSHED", {
+    deviceId,
+    cursor: store.cursor,
+    metadata: { acceptedCount: acceptedIds.length }
+  });
+  applyRetention(space);
   await saveStore(store);
   return { acceptedIds, cursor: store.cursor, workspaceId };
 }
@@ -309,8 +424,14 @@ export async function hostedPull(workspaceId: string, since: number, deviceId: s
     .map((entry) => decryptJson(entry.envelope));
   if (space.devices[deviceId]) {
     space.devices[deviceId].lastSeenAt = new Date().toISOString();
-    await saveStore(store);
   }
+  appendAudit(space, "EVENTS_PULLED", {
+    deviceId,
+    cursor: store.cursor,
+    metadata: { since, returnedCount: events.length }
+  });
+  applyRetention(space);
+  await saveStore(store);
   return { cursor: store.cursor, workspaceId, events };
 }
 
@@ -319,14 +440,21 @@ export async function hostedRevokeDevice(workspaceId: string, deviceId: string) 
   const space = workspace(store, workspaceId || DEFAULT_WORKSPACE);
   if (!space.devices[deviceId]) return { ok: false, status: 404, error: "Device not found." };
   space.devices[deviceId].revokedAt = new Date().toISOString();
+  appendAudit(space, "DEVICE_REVOKED", { deviceId });
+  applyRetention(space);
   await saveStore(store);
   return { ok: true, workspaceId, deviceId, revoked: true };
 }
 
 export async function hostedDeleteWorkspace(workspaceId: string) {
   const store = await loadStore();
-  const existed = Boolean(store.workspaces[workspaceId || DEFAULT_WORKSPACE]);
-  delete store.workspaces[workspaceId || DEFAULT_WORKSPACE];
+  const targetWorkspaceId = workspaceId || DEFAULT_WORKSPACE;
+  const existed = Boolean(store.workspaces[targetWorkspaceId]);
+  if (existed) {
+    const space = workspace(store, targetWorkspaceId);
+    appendAudit(space, "WORKSPACE_DELETED", { metadata: { workspaceId: targetWorkspaceId } });
+  }
+  delete store.workspaces[targetWorkspaceId];
   await saveStore(store);
-  return { ok: true, workspaceId: workspaceId || DEFAULT_WORKSPACE, deleted: existed };
+  return { ok: true, workspaceId: targetWorkspaceId, deleted: existed };
 }
