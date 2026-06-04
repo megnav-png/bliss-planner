@@ -179,6 +179,13 @@ Managed auth enforcement:
 - `/client` requires an authenticated client portal user or full workspace user.
 - `/vendor` requires an authenticated vendor portal user or full workspace user.
 - In local development without managed auth env, the app keeps the seeded local session for testing.
+- Authorized Google portal test command after env variables are set:
+
+```bash
+BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_TEST_ROLE=client npm run qa:render:portal:authorized
+BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_TEST_ROLE=vendor npm run qa:render:portal:authorized
+BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_TEST_ROLE=admin npm run qa:render:portal:authorized
+```
 
 File storage config:
 
@@ -189,6 +196,8 @@ BLISS_OBJECT_STORAGE_REGION=<optional object region>
 BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT=<optional external upload endpoint>
 BLISS_OBJECT_STORAGE_TOKEN=<optional upload endpoint token>
 ```
+
+Chosen object storage provider: Cloudflare R2. See `phase7/OBJECT_STORAGE_R2_SETUP.md`.
 
 Portal and admin production APIs:
 - `GET /api/portal/client` returns client-scoped weddings, approvals, guests, and files.
@@ -203,6 +212,8 @@ Billing hardening:
 BLISS_BILLING_CHECKOUT_URL=<provider checkout link or portal>
 STRIPE_SECRET_KEY=<optional future Stripe secret>
 ```
+
+Chosen first checkout provider: Stripe Payment Links. See `phase7/BILLING_STRIPE_PAYMENT_LINKS.md`.
 
 Invite email config:
 

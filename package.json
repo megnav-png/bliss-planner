@@ -21,6 +21,7 @@
     "phase6:pilot:deterministic": "node scripts/deterministic-pilot.mjs",
     "qa:render:visual": "node scripts/render-visual-qa.mjs",
     "qa:render:portal": "node scripts/render-portal-ux-pass.mjs",
+    "qa:render:portal:authorized": "node scripts/authorized-google-portal-pass.mjs",
     "qa:production:api": "node scripts/production-api-smoke.mjs",
     "railway:deploy": "bash scripts/run-railway-deploy.sh",
     "sync:relay:prototype": "node sync-relay/prototype-server.mjs",
