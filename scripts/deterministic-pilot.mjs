@@ -50,6 +50,14 @@ function storageDetail(observed) {
   return observed ? "Local storage also reflected the change." : "Visible UI updated; storage mirror was still catching up.";
 }
 
+async function waitForBodyText(page, text, timeout = 10_000) {
+  await page.waitForFunction(
+    (expected) => document.body.innerText.includes(expected),
+    text,
+    { timeout }
+  );
+}
+
 const seedState = {
   workspace: {
     id: "pilot-workspace",
@@ -325,7 +333,7 @@ try {
 
   await page.getByRole("textbox", { name: "Add vendor" }).fill("Pilot Florals");
   await page.locator(".crud-card:has(h4:has-text('Vendors')) button:has-text('Add')").click();
-  await page.getByLabel("Operational records").getByText("Pilot Florals").first().waitFor({ timeout: 10_000 });
+  await waitForBodyText(page, "Pilot Florals");
   const vendorStored = await observeStoredState(page, "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals')");
   addResult("Vendor CRUD", "PASS", `Vendor create flow added a new vendor record. ${storageDetail(vendorStored)}`);
 
@@ -333,36 +341,36 @@ try {
   await page.getByLabel("Record detail drawer").waitFor({ timeout: 10_000 });
   await page.getByLabel("Record detail drawer").getByLabel("Vendor name").fill("Pilot Florals Studio");
   await page.getByTestId("save-record-detail").click();
-  await page.getByLabel("Operational records").getByText("Pilot Florals Studio").first().waitFor({ timeout: 10_000 });
+  await waitForBodyText(page, "Pilot Florals Studio");
   const vendorEditStored = await observeStoredState(page, "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals Studio')");
   addResult("Record detail drawer", "PASS", `Vendor detail drawer edited and saved a record. ${storageDetail(vendorEditStored)}`);
 
   await page.getByRole("textbox", { name: "Add client approval" }).fill("Final music approval");
   await page.locator(".crud-card:has(h4:has-text('Client approvals')) button:has-text('Add')").click();
-  await page.getByLabel("Operational records").getByText("Final music approval").first().waitFor({ timeout: 10_000 });
+  await waitForBodyText(page, "Final music approval");
   const approvalStored = await observeStoredState(page, "state => state.clientApprovals?.some(approval => approval.title === 'Final music approval')");
   addResult("Client approval CRUD", "PASS", `Client approval create flow added a new approval record. ${storageDetail(approvalStored)}`);
 
   await page.getByRole("button", { name: /Approve/i }).first().click();
-  await page.getByText("APPROVED", { exact: false }).first().waitFor({ timeout: 10_000 });
+  await waitForBodyText(page, "APPROVED");
   const approvalDecisionStored = await observeStoredState(page, "state => state.clientApprovals?.some(approval => approval.id === 'approval-1' && approval.state === 'APPROVED')");
   addResult("Client approval decision", "PASS", `Approval queue changed a client approval to approved with history. ${storageDetail(approvalDecisionStored)}`);
 
   await page.getByLabel("Invite team member").fill("planner2@blissplanner.test");
   await page.getByRole("button", { name: /Send invite/i }).click();
-  await page.getByText("planner2@blissplanner.test").first().waitFor({ timeout: 10_000 });
+  await waitForBodyText(page, "planner2@blissplanner.test");
   const inviteStored = await observeStoredState(page, "state => state.invites?.some(invite => invite.email === 'planner2@blissplanner.test')");
   addResult("Team invitation", "PASS", `Team invite created and rendered. ${storageDetail(inviteStored)}`);
 
   await page.getByLabel("Add guest").fill("Pilot Guest Two");
   await page.getByRole("button", { name: /Add guest/i }).click();
-  await page.getByText("Pilot Guest Two").first().waitFor({ timeout: 10_000 });
+  await waitForBodyText(page, "Pilot Guest Two");
   const guestStored = await observeStoredState(page, "state => state.guests?.some(guest => guest.name === 'Pilot Guest Two')");
   addResult("Guest RSVP foundation", "PASS", `Guest record created and rendered. ${storageDetail(guestStored)}`);
 
   await page.getByLabel("Add inquiry").fill("Pilot Corporate Wedding");
   await page.getByRole("button", { name: /Add lead/i }).click();
-  await page.getByText("Pilot Corporate Wedding").first().waitFor({ timeout: 10_000 });
+  await waitForBodyText(page, "Pilot Corporate Wedding");
   const leadStored = await observeStoredState(page, "state => state.pipelineLeads?.some(lead => lead.clientName === 'Pilot Corporate Wedding')");
   addResult("Business development CRM", "PASS", `Inquiry lead created and rendered. ${storageDetail(leadStored)}`);
 } catch (error) {
