@@ -1,14 +1,26 @@
+import { createHash } from "node:crypto";
+
 const SENTRY_DSN = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN || "";
 const RENDER_SERVICE_NAME = process.env.RENDER_SERVICE_NAME || "bliss-planner";
 const RENDER_GIT_COMMIT = process.env.RENDER_GIT_COMMIT || process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA || "local";
 
+function fingerprint(value: string) {
+  if (!value) return "";
+  return createHash("sha256").update(value.trim()).digest("hex").slice(0, 16);
+}
+
 export function monitoringHealth() {
+  const relayToken = process.env.BLISS_RELAY_TOKEN || "";
+
   return {
     ok: true,
     service: RENDER_SERVICE_NAME,
     commit: RENDER_GIT_COMMIT,
     environment: process.env.NODE_ENV || "development",
     sentryConfigured: Boolean(SENTRY_DSN),
+    relayTokenConfigured: Boolean(relayToken),
+    relayTokenFingerprint: fingerprint(relayToken),
+    relayTokenVersion: process.env.BLISS_RELAY_TOKEN_VERSION || "",
     uptimeSeconds: Math.round(process.uptime()),
     checkedAt: new Date().toISOString()
   };

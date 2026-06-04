@@ -2,7 +2,8 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, 
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 
 const SECRET = process.env.BLISS_RELAY_SECRET || "hosted-dev-only-change-me";
-const AUTH_TOKEN = process.env.BLISS_RELAY_TOKEN || "";
+const normalizeRelayToken = (value: string) => value.trim();
+const AUTH_TOKEN = normalizeRelayToken(process.env.BLISS_RELAY_TOKEN || "");
 const STORE_BACKEND = (process.env.BLISS_RELAY_STORE_BACKEND || "file").toLowerCase();
 const STORE_DIR = process.env.BLISS_RELAY_STORE_DIR || "/tmp";
 const STORE_FILE = process.env.BLISS_RELAY_STORE_FILE || "bliss-planner-hosted-relay-store.json";
@@ -273,7 +274,7 @@ function applyRetention(space: ReturnType<typeof workspace>) {
 function authTokenFromHeaders(headers: Headers) {
   const authorization = headers.get("authorization") || "";
   const headerToken = headers.get("x-bliss-relay-token") || "";
-  return authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : headerToken;
+  return normalizeRelayToken(authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : headerToken);
 }
 
 export function authorizeRelayRequest(headers: Headers) {

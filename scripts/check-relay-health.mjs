@@ -4,7 +4,12 @@ const token = process.env.BLISS_RELAY_TOKEN || "";
 const allowNonDurable = process.env.BLISS_ALLOW_NON_DURABLE_RELAY === "true";
 
 const url = `${appUrl}/api/sync/health?workspaceId=${encodeURIComponent(workspaceId)}`;
-const headers = token ? { authorization: `Bearer ${token}` } : {};
+const headers = token
+  ? {
+      authorization: `Bearer ${token}`,
+      "x-bliss-relay-token": token
+    }
+  : {};
 const response = await fetch(url, { headers });
 const body = await response.json().catch(() => ({}));
 
