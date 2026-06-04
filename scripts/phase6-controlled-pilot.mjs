@@ -19,11 +19,11 @@ const DEFAULT_PORTS = [3000, 3001, 3002, 3003, 3004, 3005];
 const STORAGE_KEY = "wovops.phase2.state";
 const SYNC_STORAGE_KEY = "wovops.phase2.sync.state";
 const SYNC_PACKAGE_KEY = "wovops.phase2.sync.package";
-const FINAL_SCREENSHOT = path.join(tmpdir(), `wovops-phase6-final-${Date.now()}.png`);
-const REPORT_FILE = path.join(tmpdir(), `wovops-phase6-pilot-${Date.now()}.json`);
-const screenshotDesktop = path.join(tmpdir(), `wovops-phase6-desktop-${Date.now()}.png`);
-const screenshotMobile = path.join(tmpdir(), `wovops-phase6-mobile-${Date.now()}.png`);
-const packagePath = path.join(tmpdir(), `wovops-phase6-package-${Date.now()}.json`);
+const FINAL_SCREENSHOT = path.join(tmpdir(), `bliss-planner-phase6-final-${Date.now()}.png`);
+const REPORT_FILE = path.join(tmpdir(), `bliss-planner-phase6-pilot-${Date.now()}.json`);
+const screenshotDesktop = path.join(tmpdir(), `bliss-planner-phase6-desktop-${Date.now()}.png`);
+const screenshotMobile = path.join(tmpdir(), `bliss-planner-phase6-mobile-${Date.now()}.png`);
+const packagePath = path.join(tmpdir(), `bliss-planner-phase6-package-${Date.now()}.json`);
 const PILOT_TIMEOUT_MS = 8_000;
 const URL_PROBE_TIMEOUT_MS = 1_250;
 const SKIP_PRECHECK = String(process.env.WOVOPS_PILOT_SKIP_PRECHECK || "").toLowerCase() === "true";
@@ -838,7 +838,7 @@ try {
 
     if (isOnboarding) {
       await fillByRoleOrLabel(page, "Planner Name", "Pilot Planner");
-      await fillByRoleOrLabel(page, "Planner Email", "pilot@wovops.test");
+      await fillByRoleOrLabel(page, "Planner Email", "pilot@blissplanner.test");
       await fillByRoleOrLabel(page, "Business / Studio", "Pilot Wedding Group");
       await fillByRoleOrLabel(page, "Base Currency", "USD");
       await fillByRoleOrLabel(page, "Reporting Currency", "USD");
@@ -933,7 +933,7 @@ try {
     appState = await waitForAppPhase(page, ["onboarding", "dashboard", "error", "loading"], 12_000);
   } else {
     await fillByRoleOrLabel(page, "Planner Name", "Pilot Planner");
-    await fillByRoleOrLabel(page, "Planner Email", "pilot@wovops.test");
+    await fillByRoleOrLabel(page, "Planner Email", "pilot@blissplanner.test");
     await fillByRoleOrLabel(page, "Business / Studio", "Pilot Wedding Group");
     await fillByRoleOrLabel(page, "Base Currency", "USD");
     await fillByRoleOrLabel(page, "Reporting Currency", "USD");

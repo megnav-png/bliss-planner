@@ -1,12 +1,12 @@
-const APP_CACHE_NAME = "wovops-shell-v1";
-const RUNTIME_CACHE_NAME = "wovops-runtime-v1";
+const APP_CACHE_NAME = "bliss-planner-shell-v1";
+const RUNTIME_CACHE_NAME = "bliss-planner-runtime-v1";
 
 const PRECACHE_URLS = [
   "/",
   "/manifest.webmanifest",
   "/assets/dashboard-concept.png",
-  "/icons/wovops-icon-192.png",
-  "/icons/wovops-icon-512.png"
+  "/icons/bliss-planner-icon-192.png",
+  "/icons/bliss-planner-icon-512.png"
 ];
 
 function isGetRequest(event) {

@@ -107,6 +107,12 @@ export default function Dashboard({
   const openTasks = selectedTasks.filter((t) => t.status !== "DONE").length;
   const blockedCount = selectedTasks.filter((t) => t.status === "BLOCKED").length;
   const pendingGuestGap = Math.max(0, selected.guestTarget - selected.rsvpYes - selected.rsvpPending);
+  const budgetVariance = planned > 0 ? ((spent / planned) - 1) * 100 : 0;
+  const rsvpProgress = selected.guestTarget > 0 ? (selected.rsvpYes / selected.guestTarget) * 100 : 0;
+  const taskProgress =
+    selectedTasks.length > 0
+      ? (selectedTasks.filter((t) => t.status === "DONE").length / selectedTasks.length) * 100
+      : 0;
 
   const totalRoomsNeed = selected.guestGroups.reduce((sum, g) => sum + g.roomNeed, 0);
   const totalGroups = selected.guestGroups.reduce((sum, g) => sum + g.total, 0);
@@ -194,7 +200,7 @@ export default function Dashboard({
       const payload = await onExportPackage();
       const blob = new Blob([payload], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      const fileName = `wovops-sync-package-${new Date().toISOString()}.json`;
+      const fileName = `bliss-planner-sync-package-${new Date().toISOString()}.json`;
 
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -321,13 +327,13 @@ export default function Dashboard({
         <div className="title-col">
           <p className="kicker">Wedding operations center</p>
           <h1>Bliss Planner Dashboard</h1>
-          <p>Welcome {state.profile.name} · {state.profile.businessName}</p>
+          <p>{state.profile.businessName} workspace for {state.profile.name}</p>
         </div>
         <div className="dashboard-actions">
           <div className="dashboard-cta-row">
             <a href={productHome} className="btn btn-brand" aria-label="Open Bliss Planner">
               <span className="brand-mark" aria-hidden="true">
-                <img src="/icons/wovops-icon-192.png" alt="" />
+                <img src="/icons/bliss-planner-icon-192.png" alt="" />
               </span>
               Open product
             </a>
@@ -376,6 +382,24 @@ export default function Dashboard({
         </div>
       </section>
 
+      <section className="operations-rail" aria-label="Operations snapshot">
+        <article className="ops-tile">
+          <span>Today</span>
+          <strong>{nextActions[0]?.title ?? "No urgent action"}</strong>
+          <p>{nextActions[0] ? `Owner: ${nextActions[0].owner}` : "Workspace is clear for immediate operations."}</p>
+        </article>
+        <article className="ops-tile">
+          <span>This week</span>
+          <strong>{openTasks} open tasks</strong>
+          <p>{blockedCount} blocked items need planner attention.</p>
+        </article>
+        <article className="ops-tile">
+          <span>Client experience</span>
+          <strong>{Math.round(rsvpProgress)}% RSVP target</strong>
+          <p>{pendingGuestGap > 0 ? `${pendingGuestGap} more responses to close target.` : "Guest target is close to locked."}</p>
+        </article>
+      </section>
+
       <section className="panel sync-panel card">
         <div className="section-header">
           <div>
@@ -399,23 +423,23 @@ export default function Dashboard({
         </div>
 
         <div className="sync-status-grid">
-          <p>
+          <p className="sync-stat">
             <strong>Device:</strong> {diagnosticSummary.deviceId}
           </p>
-          <p>
+          <p className="sync-stat">
             <strong>Planner ID:</strong> {diagnosticSummary.plannerId}
           </p>
-          <p>
+          <p className="sync-stat">
             <strong>Sync state:</strong>
             <span className={statusClass(`sync ${diagnosticSummary.syncStatus}`)}>{diagnosticSummary.syncStatus}</span>
           </p>
-          <p>
+          <p className="sync-stat">
             <strong>Queue:</strong> {diagnosticSummary.pendingSyncs} pending · {diagnosticSummary.outboxCount} queued
           </p>
-          <p>
+          <p className="sync-stat">
             <strong>Revisions:</strong> local {diagnosticSummary.nextRevision} · remote {diagnosticSummary.lastRemoteRevision}
           </p>
-          <p>
+          <p className="sync-stat">
             <strong>Endpoint:</strong> {diagnosticSummary.endpoint}
           </p>
           {!syncDiagnostics?.endpoint ? <p className="sync-error">Add a sync endpoint to push/pull changes across devices.</p> : null}
@@ -473,9 +497,9 @@ export default function Dashboard({
                   onChange={handleImportPackage}
                   hidden
                 />
-                <button className="btn btn-danger" onClick={onClearSync}>
-                  Reset sync metadata
-                </button>
+              <button className="btn btn-danger" onClick={onClearSync}>
+                Reset sync
+              </button>
               </div>
             </label>
 
@@ -501,29 +525,45 @@ export default function Dashboard({
 
       <section className="grid four metrics-grid">
         <article className="panel card metric-card">
+          <span className="metric-label">Budget</span>
           <h3>Budget health</h3>
           <p className="metric">{currency(spent, selected.currency)} spent</p>
           <p>of {currency(planned, selected.currency)} planned</p>
-          <p className="variance">Variance {percent(((spent / planned) - 1) * 100)}</p>
+          <div className="mini-meter" aria-hidden="true">
+            <span style={{ width: `${Math.min(100, (spent / planned) * 100)}%` }} />
+          </div>
+          <p className="variance">Variance {percent(budgetVariance)}</p>
         </article>
         <article className="panel card metric-card">
+          <span className="metric-label">Clients</span>
           <h3>Guest movement</h3>
           <p className="metric">{selected.rsvpYes}</p>
           <p>confirmed / target {selected.guestTarget}</p>
+          <div className="mini-meter" aria-hidden="true">
+            <span style={{ width: `${Math.min(100, rsvpProgress)}%` }} />
+          </div>
           <p>{selected.rsvpPending} pending replies</p>
         </article>
         <article className="panel card metric-card">
+          <span className="metric-label">Delivery</span>
           <h3>Tasks</h3>
           <p className="metric">{openTasks}</p>
           <p>open tasks</p>
+          <div className="mini-meter" aria-hidden="true">
+            <span style={{ width: `${Math.min(100, taskProgress)}%` }} />
+          </div>
           <p>
             {blockedCount} blocked · {selectedTasks.filter((t) => t.status === "DONE").length}/{selectedTasks.length} completed
           </p>
         </article>
         <article className="panel card metric-card">
+          <span className="metric-label">Risk</span>
           <h3>Risk signal</h3>
           <p className="metric">{selected.riskLevel}</p>
           <p>Rooms needed {totalRoomsNeed}</p>
+          <div className="mini-meter risk-meter" aria-hidden="true">
+            <span style={{ width: selected.riskLevel === "HIGH" ? "76%" : "42%" }} />
+          </div>
           <p>Groups {selected.guestGroups.length} / {totalGroups} people</p>
         </article>
       </section>
@@ -568,6 +608,12 @@ export default function Dashboard({
           <p>
             <strong>Transport seats impact:</strong> {Math.ceil(selected.guestTarget / 22)} shuttle blocks
           </p>
+          <div className="impact-summary">
+            <span>Catering</span>
+            <strong>{Math.round(selected.guestTarget * 2.2)} portions</strong>
+            <span>Rooming</span>
+            <strong>{Math.round(selected.guestTarget * 0.45)} rooms</strong>
+          </div>
         </article>
       </section>
 

@@ -51,7 +51,7 @@ const tasks: Task[] = [
 export const seedState: AppState = {
   profile: {
     name: "Aster Bellamy",
-    email: "planner@wovops.example",
+    email: "planner@blissplanner.example",
     businessName: "Aster Knot Studio"
   },
   settings: {

@@ -13,8 +13,8 @@ try {
 
 const baseUrl = process.env.WOVOPS_APP_URL || "http://localhost:4173";
 const outDir = resolve(process.env.WOVOPS_OUTPUT_DIR || tmpdir());
-const desktopPath = `${outDir}/wovops-desktop.png`;
-const mobilePath = `${outDir}/wovops-mobile.png`;
+const desktopPath = `${outDir}/bliss-planner-desktop.png`;
+const mobilePath = `${outDir}/bliss-planner-mobile.png`;
 
 const browserArgs = [
   "--no-sandbox",

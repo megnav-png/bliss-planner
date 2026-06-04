@@ -1,16 +1,41 @@
 export default function ManualPage() {
   return (
     <main className="app-shell dashboard-shell">
-      <section className="onboarding-panel">
-        <p className="kicker">Bliss Planner</p>
-        <h1>Instruction Manual</h1>
-        <p>
-          This guide helps planners start quickly, run day-to-day operations, and manage cross-device workflows.
-          All data is saved locally by default, with optional offline-safe cloud sync controls.
-        </p>
+      <section className="manual-hero">
+        <div>
+          <p className="kicker">Bliss Planner</p>
+          <h1>Instruction Manual</h1>
+          <p>
+            A practical operating guide for onboarding, wedding workspaces, client updates, and local-first continuity.
+          </p>
+        </div>
+        <div className="manual-actions">
+          <a href="/" className="btn btn-brand">Open dashboard</a>
+          <a href="https://www.playoramusic.com" className="btn btn-ghost" target="_blank" rel="noopener noreferrer">
+            Playora home
+          </a>
+        </div>
+      </section>
+
+      <nav className="manual-nav" aria-label="Manual sections">
+        <a href="#first-launch">First launch</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#actions">Actions</a>
+        <a href="#continuity">Continuity</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+      </nav>
+
+      <section className="manual-layout">
+        <aside className="manual-note panel">
+          <p className="kicker">Operating principle</p>
+          <h3>Local by default</h3>
+          <p>
+            Bliss Planner keeps planner data on the device unless the planner explicitly configures an endpoint or imports a package.
+          </p>
+        </aside>
 
         <div className="grid two">
-          <article className="panel card">
+          <article id="first-launch" className="panel card manual-card">
             <h3>1) First launch and onboarding</h3>
             <ol className="manual-list">
               <li>Open the app. If prompted, complete the wizard (planner profile, currencies, timezone/locale).</li>
@@ -25,7 +50,7 @@ export default function ManualPage() {
             </ol>
           </article>
 
-          <article className="panel card">
+          <article id="dashboard" className="panel card manual-card">
             <h3>2) Navigate the dashboard</h3>
             <ol className="manual-list">
               <li>Use <strong>Wedding Workspace</strong> at the top to switch active weddings.</li>
@@ -41,7 +66,7 @@ export default function ManualPage() {
             </ol>
           </article>
 
-          <article className="panel card">
+          <article id="actions" className="panel card manual-card">
             <h3>3) Tasks and planning actions</h3>
             <ul className="manual-list">
               <li>Mark tasks done in <strong>Next actions</strong> and in <strong>Task impact map</strong>.</li>
@@ -51,7 +76,7 @@ export default function ManualPage() {
             </ul>
           </article>
 
-          <article className="panel card">
+          <article id="continuity" className="panel card manual-card">
             <h3>4) Cross-device continuity</h3>
             <ul className="manual-list">
               <li>Configure <strong>Sync endpoint</strong> for the remote mirror API.</li>
@@ -62,7 +87,7 @@ export default function ManualPage() {
           </article>
         </div>
 
-        <article className="panel card">
+        <article id="troubleshooting" className="panel card manual-card manual-wide">
           <h3>5) Troubleshooting</h3>
           <ol className="manual-list">
             <li>If page reports sync errors, confirm endpoint URL and retry.</li>
