@@ -57,6 +57,31 @@ await check("vendor portal protected without cookie", async () => {
   return { status: response.status, error: body.error };
 });
 
+await check("admin overview protected without cookie", async () => {
+  const { response, body } = await json("/api/admin/overview");
+  if (![401, 403].includes(response.status) || body.ok !== false) throw new Error(`Expected protected admin overview, got ${response.status}`);
+  return { status: response.status, error: body.error };
+});
+
+await check("notifications protected without cookie", async () => {
+  const { response, body } = await json("/api/notifications");
+  if (![401, 403].includes(response.status) || body.ok !== false) throw new Error(`Expected protected notifications, got ${response.status}`);
+  return { status: response.status, error: body.error };
+});
+
+await check("realtime events protected without cookie", async () => {
+  const { response, body } = await json("/api/realtime/events");
+  if (![401, 403].includes(response.status) || body.ok !== false) throw new Error(`Expected protected realtime events, got ${response.status}`);
+  return { status: response.status, error: body.error };
+});
+
+await check("calendar feed protected without cookie or feed token", async () => {
+  const response = await fetch(`${appUrl}/api/calendar/ics`);
+  const body = await response.json().catch(() => ({}));
+  if (![401, 403].includes(response.status) || body.ok !== false) throw new Error(`Expected protected calendar feed, got ${response.status}`);
+  return { status: response.status, error: body.error };
+});
+
 console.log(JSON.stringify(report, null, 2));
 if (report.checks.some((item) => item.status !== "PASS")) {
   process.exitCode = 1;

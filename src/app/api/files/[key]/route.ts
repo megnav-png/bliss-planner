@@ -16,7 +16,7 @@ export async function GET(_request: Request, context: { params: Promise<{ key: s
   const { key } = await context.params;
   try {
     const bytes = await readStoredFile(key);
-    return new Response(bytes, {
+    return new Response(new Uint8Array(bytes), {
       headers: {
         "content-type": contentTypeFor(key),
         "cache-control": "private, max-age=3600"

@@ -107,3 +107,30 @@ create table if not exists bliss_audit_log (
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+
+create table if not exists bliss_notifications (
+  id text primary key,
+  workspace_id text not null references bliss_workspaces(id) on delete cascade,
+  channel text not null default 'in_app',
+  recipient_email text,
+  subject text not null,
+  body text not null,
+  status text not null default 'QUEUED',
+  metadata jsonb not null default '{}'::jsonb,
+  sent_at timestamptz,
+  read_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists bliss_realtime_events (
+  id text primary key,
+  workspace_id text not null references bliss_workspaces(id) on delete cascade,
+  event_type text not null,
+  entity text,
+  entity_id text,
+  actor_email text,
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists bliss_realtime_workspace_created_idx on bliss_realtime_events(workspace_id, created_at desc);

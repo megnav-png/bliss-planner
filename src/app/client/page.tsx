@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClientApprovalActions } from "@/components/portal/ClientApprovalActions";
 import { seedState } from "@/lib/fakeData";
 import { requireManagedAccess } from "@/lib/server/managedAuth";
 import { listRecords } from "@/lib/server/productionStore";
@@ -79,7 +80,7 @@ export default async function ClientPortalPage() {
       </section>
 
       <section className="grid two equal">
-        <article className="panel card">
+        <article className="panel card" id="approval-center">
           <h3>Approval center</h3>
           <div className="portal-list">
             {approvals.map((approval) => (
@@ -87,6 +88,7 @@ export default async function ClientPortalPage() {
                 <strong>{approval.title}</strong>
                 <p>{approval.owner} · due {new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(approval.dueAt))}</p>
                 <span className={`pill ${approval.state.toLowerCase()}`}>{approval.state.replace("_", " ")}</span>
+                <ClientApprovalActions approvalId={approval.id} initialState={approval.state} />
               </div>
             ))}
           </div>
@@ -103,7 +105,7 @@ export default async function ClientPortalPage() {
             ))}
           </div>
           <div className="portal-actions">
-            <button className="btn btn-primary" type="button">Send decision note</button>
+            <a className="btn btn-primary" href="#approval-center">Send decision note</a>
             <button className="btn btn-soft" type="button">Request planner call</button>
           </div>
         </article>

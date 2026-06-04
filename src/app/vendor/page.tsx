@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VendorUpdateActions } from "@/components/portal/VendorUpdateActions";
 import { seedState } from "@/lib/fakeData";
 import { requireManagedAccess } from "@/lib/server/managedAuth";
 import { listRecords } from "@/lib/server/productionStore";
@@ -85,21 +86,7 @@ export default async function VendorPortalPage() {
 
         <article className="panel card portal-action-card">
           <h3>Vendor update flow</h3>
-          <form className="portal-form">
-            <label>
-              Update type
-              <select defaultValue="scope">
-                <option value="scope">Scope confirmation</option>
-                <option value="quote">Quote or payment update</option>
-                <option value="risk">Risk or blocker</option>
-              </select>
-            </label>
-            <label>
-              Message to planner
-              <textarea defaultValue="We are ready to confirm the current scope once guest counts are locked." />
-            </label>
-            <button className="btn btn-primary" type="button">Submit vendor update</button>
-          </form>
+          <VendorUpdateActions vendorId={vendors[0]?.id} />
         </article>
       </section>
 

@@ -49,6 +49,10 @@ const ENTITY_NAMES: ProductionEntity[] = [
 ];
 
 const DATABASE_URL = process.env.BLISS_APP_DATABASE_URL || process.env.BLISS_RELAY_DATABASE_URL || process.env.DATABASE_URL || "";
+const ALLOWED_DATA_RESIDENCIES = (process.env.BLISS_ALLOWED_DATA_RESIDENCIES || "")
+  .split(",")
+  .map((item) => item.trim().toLowerCase())
+  .filter(Boolean);
 let pool: Pool | null = null;
 let schemaReady: Promise<void> | null = null;
 
@@ -74,8 +78,16 @@ export function productionStoreHealth() {
   return {
     configured: Boolean(DATABASE_URL),
     backend: DATABASE_URL ? "postgres" : "not-configured",
-    entities: ENTITY_NAMES
+    entities: ENTITY_NAMES,
+    dataResidencyPolicy: ALLOWED_DATA_RESIDENCIES.length ? ALLOWED_DATA_RESIDENCIES : ["any"]
   };
+}
+
+function assertDataResidency(value?: string) {
+  if (!ALLOWED_DATA_RESIDENCIES.length || !value) return;
+  if (!ALLOWED_DATA_RESIDENCIES.includes(value.toLowerCase())) {
+    throw new Error(`Data residency '${value}' is not allowed for this deployment.`);
+  }
 }
 
 export async function ensureProductionSchema() {
@@ -188,6 +200,33 @@ export async function ensureProductionSchema() {
         metadata jsonb not null default '{}'::jsonb,
         created_at timestamptz not null default now()
       );
+
+      create table if not exists bliss_notifications (
+        id text primary key,
+        workspace_id text not null references bliss_workspaces(id) on delete cascade,
+        channel text not null default 'in_app',
+        recipient_email text,
+        subject text not null,
+        body text not null,
+        status text not null default 'QUEUED',
+        metadata jsonb not null default '{}'::jsonb,
+        sent_at timestamptz,
+        read_at timestamptz,
+        created_at timestamptz not null default now()
+      );
+
+      create table if not exists bliss_realtime_events (
+        id text primary key,
+        workspace_id text not null references bliss_workspaces(id) on delete cascade,
+        event_type text not null,
+        entity text,
+        entity_id text,
+        actor_email text,
+        payload jsonb not null default '{}'::jsonb,
+        created_at timestamptz not null default now()
+      );
+
+      create index if not exists bliss_realtime_workspace_created_idx on bliss_realtime_events(workspace_id, created_at desc);
     `).then(() => undefined);
   }
   await schemaReady;
@@ -195,6 +234,7 @@ export async function ensureProductionSchema() {
 }
 
 export async function upsertWorkspace(input: { id?: string; name: string; region?: string; dataResidency?: string; authProvider?: string }) {
+  assertDataResidency(input.dataResidency);
   if (!(await ensureProductionSchema())) return null;
   const db = getPool();
   if (!db) return null;
@@ -244,6 +284,38 @@ export async function listAccounts(workspaceId: string) {
   return result.rows;
 }
 
+export async function updateAccountAccess(input: {
+  workspaceId: string;
+  email: string;
+  name?: string;
+  role?: AccountRole;
+  status?: AccountStatus;
+  portalAccess?: PortalAccess;
+  actorEmail?: string;
+}) {
+  if (!(await ensureProductionSchema())) return null;
+  const db = getPool();
+  if (!db) return null;
+  const result = await db.query(
+    `update bliss_accounts set
+       name = coalesce($3, name),
+       role = coalesce($4, role),
+       status = coalesce($5, status),
+       portal_access = coalesce($6, portal_access),
+       updated_at = now()
+     where workspace_id = $1 and email = lower($2)
+     returning id, workspace_id as "workspaceId", external_sub as "externalSub", email, name, role, status, portal_access as "portalAccess", last_active_at as "lastActiveAt"`,
+    [input.workspaceId, input.email, input.name || null, input.role || null, input.status || null, input.portalAccess || null]
+  );
+  await recordAudit(input.workspaceId, input.actorEmail, "ACCOUNT_ACCESS_UPDATED", "account", input.email, {
+    role: input.role,
+    status: input.status,
+    portalAccess: input.portalAccess
+  });
+  await publishRealtimeEvent(input.workspaceId, "ACCOUNT_ACCESS_UPDATED", "account", input.email, input.actorEmail, {});
+  return result.rows[0] ?? null;
+}
+
 export async function listRecords(workspaceId: string, entity: string) {
   ensureEntity(entity);
   if (!(await ensureProductionSchema())) return [];
@@ -287,6 +359,7 @@ export async function createRecord(workspaceId: string, entity: string, payload:
     [id, workspaceId, entity, JSON.stringify(nextPayload), actorEmail || null]
   );
   await recordAudit(workspaceId, actorEmail, "RECORD_CREATED", entity, id, { entity });
+  await publishRealtimeEvent(workspaceId, "RECORD_CREATED", entity, id, actorEmail, { entity });
   return result.rows[0] as ProductionRecord;
 }
 
@@ -303,6 +376,7 @@ export async function updateRecord(workspaceId: string, entity: string, id: stri
     [workspaceId, entity, id, JSON.stringify({ ...patch, id }), actorEmail || null]
   );
   await recordAudit(workspaceId, actorEmail, "RECORD_UPDATED", entity, id, { entity });
+  await publishRealtimeEvent(workspaceId, "RECORD_UPDATED", entity, id, actorEmail, { entity });
   return (result.rows[0] as ProductionRecord | undefined) ?? null;
 }
 
@@ -317,6 +391,7 @@ export async function deleteRecord(workspaceId: string, entity: string, id: stri
     [workspaceId, entity, id, actorEmail || null]
   );
   await recordAudit(workspaceId, actorEmail, "RECORD_DELETED", entity, id, { entity });
+  await publishRealtimeEvent(workspaceId, "RECORD_DELETED", entity, id, actorEmail, { entity });
   return (result.rowCount ?? 0) > 0;
 }
 
@@ -361,6 +436,46 @@ export async function recordFileObject(input: {
   return result.rows[0];
 }
 
+export async function revokeFileObject(workspaceId: string, fileId: string, actorEmail?: string) {
+  if (!(await ensureProductionSchema())) return false;
+  const db = getPool();
+  if (!db) return false;
+  const result = await db.query(
+    `update bliss_file_objects set deleted_at = now()
+     where workspace_id = $1 and id = $2 and deleted_at is null`,
+    [workspaceId, fileId]
+  );
+  await recordAudit(workspaceId, actorEmail, "FILE_REVOKED", "files", fileId, {});
+  await publishRealtimeEvent(workspaceId, "FILE_REVOKED", "files", fileId, actorEmail, {});
+  return (result.rowCount ?? 0) > 0;
+}
+
+export async function listFileObjects(workspaceId: string) {
+  if (!(await ensureProductionSchema())) return [];
+  const db = getPool();
+  if (!db) return [];
+  const result = await db.query(
+    `select id, workspace_id as "workspaceId", record_id as "recordId", provider, storage_key as "storageKey", public_url as "publicUrl",
+      file_name as "fileName", mime_type as "mimeType", size_bytes as "sizeBytes", checksum, client_facing as "clientFacing",
+      created_by as "createdBy", created_at as "createdAt", deleted_at as "deletedAt"
+     from bliss_file_objects where workspace_id = $1 order by created_at desc limit 200`,
+    [workspaceId]
+  );
+  return result.rows;
+}
+
+export async function listDevices(workspaceId: string) {
+  if (!(await ensureProductionSchema())) return [];
+  const db = getPool();
+  if (!db) return [];
+  const result = await db.query(
+    `select id, workspace_id as "workspaceId", name, platform, app_version as "appVersion", last_seen_at as "lastSeenAt", revoked_at as "revokedAt", created_at as "createdAt"
+     from bliss_sync_devices where workspace_id = $1 order by coalesce(last_seen_at, created_at) desc`,
+    [workspaceId]
+  );
+  return result.rows;
+}
+
 export async function listConflicts(workspaceId: string) {
   if (!(await ensureProductionSchema())) return [];
   const db = getPool();
@@ -400,6 +515,81 @@ export async function recordAudit(workspaceId: string, actorEmail: string | unde
   return id;
 }
 
+export async function listAuditLog(workspaceId: string, limit = 100) {
+  if (!(await ensureProductionSchema())) return [];
+  const db = getPool();
+  if (!db) return [];
+  const result = await db.query(
+    `select id, workspace_id as "workspaceId", actor_email as "actorEmail", action, entity, entity_id as "entityId", metadata, created_at as "createdAt"
+     from bliss_audit_log where workspace_id = $1 order by created_at desc limit $2`,
+    [workspaceId, Math.min(Math.max(limit, 1), 250)]
+  );
+  return result.rows;
+}
+
+export async function queueNotification(input: {
+  workspaceId: string;
+  channel?: string;
+  recipientEmail?: string;
+  subject: string;
+  body: string;
+  metadata?: Record<string, unknown>;
+}) {
+  if (!(await ensureProductionSchema())) return null;
+  const db = getPool();
+  if (!db) return null;
+  await upsertWorkspace({ id: input.workspaceId, name: input.workspaceId });
+  const id = `notification-${randomUUID()}`;
+  const result = await db.query(
+    `insert into bliss_notifications(id, workspace_id, channel, recipient_email, subject, body, metadata)
+     values($1,$2,$3,$4,$5,$6,$7)
+     returning id, workspace_id as "workspaceId", channel, recipient_email as "recipientEmail", subject, body, status, metadata, sent_at as "sentAt", read_at as "readAt", created_at as "createdAt"`,
+    [id, input.workspaceId, input.channel || "in_app", input.recipientEmail || null, input.subject, input.body, JSON.stringify(input.metadata || {})]
+  );
+  await publishRealtimeEvent(input.workspaceId, "NOTIFICATION_QUEUED", "notification", id, input.recipientEmail, { channel: input.channel || "in_app" });
+  return result.rows[0];
+}
+
+export async function listNotifications(workspaceId: string) {
+  if (!(await ensureProductionSchema())) return [];
+  const db = getPool();
+  if (!db) return [];
+  const result = await db.query(
+    `select id, workspace_id as "workspaceId", channel, recipient_email as "recipientEmail", subject, body, status, metadata, sent_at as "sentAt", read_at as "readAt", created_at as "createdAt"
+     from bliss_notifications where workspace_id = $1 order by created_at desc limit 100`,
+    [workspaceId]
+  );
+  return result.rows;
+}
+
+export async function publishRealtimeEvent(workspaceId: string, eventType: string, entity?: string, entityId?: string, actorEmail?: string, payload?: Record<string, unknown>) {
+  if (!(await ensureProductionSchema())) return null;
+  const db = getPool();
+  if (!db) return null;
+  const id = `event-${randomUUID()}`;
+  const result = await db.query(
+    `insert into bliss_realtime_events(id, workspace_id, event_type, entity, entity_id, actor_email, payload)
+     values($1,$2,$3,$4,$5,$6,$7)
+     returning id, workspace_id as "workspaceId", event_type as "eventType", entity, entity_id as "entityId", actor_email as "actorEmail", payload, created_at as "createdAt"`,
+    [id, workspaceId, eventType, entity || null, entityId || null, actorEmail || null, JSON.stringify(payload || {})]
+  );
+  return result.rows[0];
+}
+
+export async function listRealtimeEvents(workspaceId: string, since?: string) {
+  if (!(await ensureProductionSchema())) return [];
+  const db = getPool();
+  if (!db) return [];
+  const result = await db.query(
+    `select id, workspace_id as "workspaceId", event_type as "eventType", entity, entity_id as "entityId", actor_email as "actorEmail", payload, created_at as "createdAt"
+     from bliss_realtime_events
+     where workspace_id = $1 and ($2::timestamptz is null or created_at > $2::timestamptz)
+     order by created_at desc limit 100`,
+    [workspaceId, since || null]
+  );
+  return result.rows;
+}
+
 export async function billingStatus(workspaceId: string) {
   if (!(await ensureProductionSchema())) return null;
   const db = getPool();
@@ -412,6 +602,37 @@ export async function billingStatus(workspaceId: string) {
      returning workspace_id as "workspaceId", provider, customer_id as "customerId", subscription_id as "subscriptionId", plan, status, current_period_end as "currentPeriodEnd", updated_at as "updatedAt"`,
     [workspaceId]
   );
+  return result.rows[0];
+}
+
+export async function updateBillingStatus(workspaceId: string, patch: Record<string, unknown>) {
+  if (!(await ensureProductionSchema())) return null;
+  const db = getPool();
+  if (!db) return null;
+  await upsertWorkspace({ id: workspaceId, name: workspaceId });
+  const result = await db.query(
+    `insert into bliss_billing_accounts(workspace_id, provider, customer_id, subscription_id, plan, status, current_period_end)
+     values($1,$2,$3,$4,$5,$6,$7)
+     on conflict(workspace_id) do update set
+       provider = excluded.provider,
+       customer_id = coalesce(excluded.customer_id, bliss_billing_accounts.customer_id),
+       subscription_id = coalesce(excluded.subscription_id, bliss_billing_accounts.subscription_id),
+       plan = excluded.plan,
+       status = excluded.status,
+       current_period_end = excluded.current_period_end,
+       updated_at = now()
+     returning workspace_id as "workspaceId", provider, customer_id as "customerId", subscription_id as "subscriptionId", plan, status, current_period_end as "currentPeriodEnd", updated_at as "updatedAt"`,
+    [
+      workspaceId,
+      String(patch.provider || "stripe"),
+      patch.customerId || null,
+      patch.subscriptionId || null,
+      String(patch.plan || "professional"),
+      String(patch.status || "active"),
+      patch.currentPeriodEnd || null
+    ]
+  );
+  await recordAudit(workspaceId, undefined, "BILLING_STATUS_UPDATED", "billing", workspaceId, patch);
   return result.rows[0];
 }
 

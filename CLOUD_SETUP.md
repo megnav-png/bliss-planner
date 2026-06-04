@@ -148,6 +148,13 @@ BLISS_RELAY_TOKEN=<long random bearer token>
 Production planner records:
 - The production CRUD API stores planner records in Postgres using `BLISS_APP_DATABASE_URL`, falling back to `BLISS_RELAY_DATABASE_URL`.
 - Apply or inspect the schema in `phase7/production-schema.sql`.
+- The same database now stores account membership, audit logs, notification queue rows, realtime collaboration events, billing state, file object indexes, devices, and sync conflicts.
+- Optional residency guardrail:
+
+```bash
+BLISS_ALLOWED_DATA_RESIDENCIES=United States,EU,India,Global,configured-by-workspace
+```
+
 - CRUD endpoints:
   - `GET/POST /api/records/weddings`
   - `GET/POST /api/records/vendors`
@@ -191,6 +198,7 @@ File storage config:
 
 ```bash
 BLISS_FILE_STORE_DIR=/var/data/bliss-relay/files
+BLISS_FILE_ENCRYPTION_KEY=<long random file encryption secret>
 BLISS_OBJECT_STORAGE_BUCKET=<optional object bucket>
 BLISS_OBJECT_STORAGE_REGION=<optional object region>
 BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT=<optional external upload endpoint>
@@ -198,6 +206,7 @@ BLISS_OBJECT_STORAGE_TOKEN=<optional upload endpoint token>
 ```
 
 Chosen object storage provider: Cloudflare R2. See `phase7/OBJECT_STORAGE_R2_SETUP.md`.
+Files are encrypted with AES-256-GCM before server disk or external object upload when `BLISS_FILE_ENCRYPTION_KEY` or `BLISS_RELAY_SECRET` is set. This is encrypted-at-rest with server-side access control; a no-escrow browser-held key model is a separate paid-release security decision.
 
 Portal and admin production APIs:
 - `GET /api/portal/client` returns client-scoped weddings, approvals, guests, and files.
@@ -205,12 +214,18 @@ Portal and admin production APIs:
 - `GET /api/portal/vendor` returns vendor-scoped wedding, vendor, venue, destination, and file data.
 - `POST /api/portal/vendor` records vendor updates.
 - `GET/POST /api/sync/conflicts` lists and resolves sync conflicts for planners/admins.
+- `GET /api/admin/overview` returns accounts, devices, conflicts, audit log, files, notifications, billing, monitoring, and production store health.
+- `POST /api/files/revoke` revokes file access in the production file index.
+- `GET/POST /api/notifications` lists and queues in-app notifications.
+- `GET/POST /api/realtime/events` provides the current polling event log used for collaboration presence/change signals.
+- `GET /api/calendar/ics` serves an ICS feed for weddings and approval due dates. Set `BLISS_CALENDAR_FEED_TOKEN` for calendar subscription access without a browser session.
 
 Billing hardening:
 
 ```bash
 BLISS_BILLING_CHECKOUT_URL=<provider checkout link or portal>
 STRIPE_SECRET_KEY=<optional future Stripe secret>
+BLISS_BILLING_WEBHOOK_SECRET=<shared secret for /api/billing/webhook>
 ```
 
 Chosen first checkout provider: Stripe Payment Links. See `phase7/BILLING_STRIPE_PAYMENT_LINKS.md`.
