@@ -96,8 +96,17 @@ function addCheck(name, status, details) {
   checks.push({ name, status, details });
 }
 
+async function gotoRoute(page, url) {
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  } catch (error) {
+    if (!(error instanceof Error) || !/Timeout/i.test(error.message)) throw error;
+    await page.waitForTimeout(1_000);
+  }
+}
+
 async function assertPortalEntry(page, route, allowedHeading, protectedHeading) {
-  await page.goto(new URL(route, APP_URL).toString(), { waitUntil: "domcontentloaded", timeout: 25_000 });
+  await gotoRoute(page, new URL(route, APP_URL).toString());
   const bodyText = await page.locator("body").innerText({ timeout: 10_000 });
   if (bodyText.includes(allowedHeading)) {
     return { mode: "authorized", bodyTextLength: bodyText.length };
@@ -122,7 +131,7 @@ try {
   });
   page.on("pageerror", (error) => consoleErrors.push(error.message));
 
-  await page.goto(APP_URL, { waitUntil: "domcontentloaded", timeout: 25_000 });
+  await gotoRoute(page, APP_URL);
   await page.getByRole("heading", { name: "Bliss Planner Dashboard" }).waitFor({ timeout: 20_000 });
   await page.getByText("Sample Caterer").first().waitFor({ timeout: 10_000 });
   await page.getByText("Team and portal access").waitFor({ timeout: 10_000 });

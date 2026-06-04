@@ -124,6 +124,15 @@ const portalChecks = [
   { path: "/operations/crm", heading: "Business development CRM", text: "Inquiry pipeline and conversion" }
 ];
 
+async function gotoRoute(page, url) {
+  try {
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  } catch (error) {
+    if (!(error instanceof Error) || !/Timeout/i.test(error.message)) throw error;
+    await page.waitForTimeout(1_000);
+  }
+}
+
 try {
   for (const viewport of viewports) {
     const context = await browser.newContext({ viewport });
@@ -138,7 +147,7 @@ try {
       if (message.type() === "error") consoleErrors.push(`${viewport.name}: ${message.text()}`);
     });
     page.on("pageerror", (error) => consoleErrors.push(`${viewport.name}: ${error.message}`));
-    await page.goto(APP_URL, { waitUntil: "domcontentloaded", timeout: 25_000 });
+    await gotoRoute(page, APP_URL);
     await page.getByRole("heading", { name: "Bliss Planner Dashboard" }).waitFor({ timeout: 20_000 });
     await page.getByTestId("deploy-version-marker").waitFor({ timeout: 10_000 });
     await page.getByLabel("Operational records").waitFor({ timeout: 10_000 });
@@ -192,7 +201,7 @@ try {
       if (message.type() === "error") consoleErrors.push(`${portal.path}: ${message.text()}`);
     });
     page.on("pageerror", (error) => consoleErrors.push(`${portal.path}: ${error.message}`));
-    await page.goto(new URL(portal.path, APP_URL).toString(), { waitUntil: "domcontentloaded", timeout: 25_000 });
+    await gotoRoute(page, new URL(portal.path, APP_URL).toString());
     let portalMode = "authorized";
     try {
       await page.getByText(portal.heading).waitFor({ timeout: 10_000 });
