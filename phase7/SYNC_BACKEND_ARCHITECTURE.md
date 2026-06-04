@@ -68,6 +68,8 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 - Durable production hosting can use `render.yaml` persistent disk settings or the Postgres adapter with `BLISS_RELAY_STORE_BACKEND=postgres`.
 - Production auth boundary now supports Google/OIDC configuration through `/api/auth/*` and reports missing provider settings in-app.
 - Hosted relay health now reports durability, auth requirement, token version, retention windows, audit count, and a rotation plan.
+- Hosted relay audit is available through `/api/sync/audit` and the `/admin` console when the real relay token is supplied.
+- Paid-release hardening is tracked in `phase7/PAID_RELEASE_HARDENING.md`.
 - Production hardening still needs user acceptance around regional storage selection and paid-release migration from file-store relay to Postgres/object storage if multi-tenant scale increases.
 
 ## Token Rotation Plan

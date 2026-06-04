@@ -53,7 +53,11 @@
    - [ ] Render has `BLISS_RELAY_SECRET` and `BLISS_RELAY_TOKEN` set.
    - [ ] Render has `BLISS_RELAY_TOKEN_VERSION`, `BLISS_RELAY_AUDIT_RETENTION_DAYS`, and `BLISS_RELAY_EVENT_RETENTION_DAYS` set.
    - [ ] `BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_RELAY_TOKEN=<token> npm run sync:relay:health` reports `durable: true`, `authRequired: true`, nonzero `auditLogCount`, and the expected token version.
+   - [ ] `/admin` relay audit viewer loads with the real relay token.
    - [ ] Managed auth provider env is set: `BLISS_AUTH_PROVIDER`, `BLISS_AUTH_CLIENT_ID`, `BLISS_AUTH_CLIENT_SECRET`, `BLISS_AUTH_SESSION_SECRET`, `BLISS_PUBLIC_APP_URL`.
+   - [ ] Invite email provider env is set: `BLISS_RESEND_API_KEY`, `BLISS_EMAIL_FROM`.
+   - [ ] Monitoring env is set: `SENTRY_DSN`, plus Render deploy alerts.
+   - [ ] Paid-release gates in `phase7/PAID_RELEASE_HARDENING.md` are reviewed.
    - [ ] Encrypted package format approved before relay API work begins.
    - [ ] Device pairing, revocation, retention, conflict review, and delete-cloud-data flows are scoped.
 

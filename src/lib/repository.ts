@@ -5,6 +5,7 @@ import {
   ClientApprovalState,
   CulturalChecklistItem,
   DestinationProfile,
+  FileReference,
   Guest,
   PipelineLead,
   PortalAccess,
@@ -94,6 +95,14 @@ export type TeamInviteDraft = {
 export type GuestDraft = Omit<Guest, "id"> & { id?: string };
 export type SeatingTableDraft = Omit<SeatingTable, "id"> & { id?: string };
 export type PipelineLeadDraft = Omit<PipelineLead, "id"> & { id?: string };
+
+export type AttachmentTarget = "vendor" | "venue" | "destination" | "approval";
+
+export type AttachmentDraft = {
+  target: AttachmentTarget;
+  targetId: string;
+  file: FileReference;
+};
 
 type PlannerStateResult = {
   ok: boolean;
@@ -527,6 +536,43 @@ export async function inviteTeamMember(draft: TeamInviteDraft): Promise<AppState
   };
   const nextState = addAudit({ ...current, invites: [invite, ...(current.invites ?? [])] }, "TEAM_INVITE_CREATED", "team_invite", invite.id, `Invited ${invite.email}`);
   recordSyncEvent({ entity: "team_invite", entityId: invite.id, operation: "UPSERT", payload: invite });
+  await writeState(nextState);
+  void fetch("/api/invites/send", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      to: invite.email,
+      role: invite.role,
+      portalAccess: invite.portalAccess,
+      workspaceName: current.workspace.name,
+      invitedBy: current.profile.name,
+      acceptUrl: `${window.location.origin}/`
+    })
+  }).catch(() => undefined);
+  return nextState;
+}
+
+export async function attachFileToRecord(draft: AttachmentDraft): Promise<AppState> {
+  const current = await readState();
+  const file = { ...draft.file, id: draft.file.id || createId("file"), addedAt: draft.file.addedAt || new Date().toISOString() };
+
+  const appendFile = <T extends { id: string; files?: FileReference[] }>(record: T): T =>
+    record.id === draft.targetId ? { ...record, files: [file, ...(record.files ?? [])] } : record;
+
+  const nextState = addAudit(
+    {
+      ...current,
+      vendors: draft.target === "vendor" ? current.vendors.map(appendFile) : current.vendors,
+      venues: draft.target === "venue" ? current.venues.map(appendFile) : current.venues,
+      destinations: draft.target === "destination" ? current.destinations.map(appendFile) : current.destinations,
+      clientApprovals: draft.target === "approval" ? current.clientApprovals.map(appendFile) : current.clientApprovals
+    },
+    "FILE_ATTACHED",
+    draft.target,
+    draft.targetId,
+    `Attached ${file.name}`
+  );
+  recordSyncEvent({ entity: draft.target === "approval" ? "client_approval" : draft.target, entityId: draft.targetId, operation: "UPSERT", payload: { file } });
   await writeState(nextState);
   return nextState;
 }

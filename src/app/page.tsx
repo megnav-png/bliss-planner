@@ -10,6 +10,7 @@ import {
   useImportSyncPackage,
   usePlannerState,
   usePlannerAuthStatus,
+  useAttachFileToRecord,
   useRunPlannerSync,
   useSetActiveWedding,
   useSetPlannerIdentity,
@@ -76,6 +77,7 @@ export default function HomePage() {
   const upsertGuestMutation = useUpsertGuest();
   const upsertSeatingMutation = useUpsertSeatingTable();
   const upsertLeadMutation = useUpsertPipelineLead();
+  const attachFileMutation = useAttachFileToRecord();
 
   if (isLoading) {
     return (
@@ -220,6 +222,9 @@ export default function HomePage() {
       }}
       onUpsertPipelineLead={(draft) => {
         void upsertLeadMutation.mutateAsync(draft);
+      }}
+      onAttachFileToRecord={(draft) => {
+        void attachFileMutation.mutateAsync(draft);
       }}
       syncError={
         importPackageMutation.error?.message ||

@@ -96,7 +96,14 @@ const consoleErrors = [];
 
 const portalChecks = [
   { path: "/client", heading: "Client portal", text: "Client review flow" },
-  { path: "/vendor", heading: "Vendor portal", text: "Vendor update flow" }
+  { path: "/vendor", heading: "Vendor portal", text: "Vendor update flow" },
+  { path: "/admin", heading: "Relay audit and monitoring", text: "Monitoring health" },
+  { path: "/operations/vendors", heading: "Vendor operations", text: "Contracts, payments, contacts, files, and risk" },
+  { path: "/operations/venues", heading: "Venue logistics", text: "Permits, access, curfew, and logistics" },
+  { path: "/operations/destinations", heading: "Destination readiness", text: "Travel, permits, weather, culture, and risks" },
+  { path: "/operations/approvals", heading: "Client approvals", text: "Approval history, comments, and files" },
+  { path: "/operations/guests", heading: "Guest RSVP and seating", text: "RSVP, meals, households, and tables" },
+  { path: "/operations/crm", heading: "Business development CRM", text: "Inquiry pipeline and conversion" }
 ];
 
 try {

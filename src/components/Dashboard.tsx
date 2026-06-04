@@ -5,6 +5,7 @@ import {
   AppState,
   AccountRole,
   ClientApprovalState,
+  FileReference,
   ImpactRow,
   MealPreference,
   ReadinessArea,
@@ -22,6 +23,7 @@ import type {
   PipelineLeadDraft,
   SeatingTableDraft,
   TeamInviteDraft,
+  AttachmentDraft,
   VendorDraft,
   VenueDraft
 } from "@/lib/repository";
@@ -83,6 +85,7 @@ interface DashboardProps {
   onUpsertGuest: (draft: GuestDraft) => void;
   onUpsertSeatingTable: (draft: SeatingTableDraft) => void;
   onUpsertPipelineLead: (draft: PipelineLeadDraft) => void;
+  onAttachFileToRecord: (draft: AttachmentDraft) => void;
   syncError?: string;
   importPackageError?: unknown;
   isLoadingTasks: boolean;
@@ -167,6 +170,7 @@ export default function Dashboard({
   onUpsertGuest,
   onUpsertSeatingTable,
   onUpsertPipelineLead,
+  onAttachFileToRecord,
   syncError,
   importPackageError,
   isLoadingTasks
@@ -186,9 +190,11 @@ export default function Dashboard({
   const [inviteEmail, setInviteEmail] = useState("");
   const [guestName, setGuestName] = useState("");
   const [leadName, setLeadName] = useState("");
+  const [attachmentTarget, setAttachmentTarget] = useState<Pick<AttachmentDraft, "target" | "targetId"> | null>(null);
   const [editKind, setEditKind] = useState<EditKind | null>(null);
   const [editDraft, setEditDraft] = useState<EditDraft>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setPlannerIdInput(syncDiagnostics?.plannerId ?? state.profile.email);
@@ -499,6 +505,43 @@ export default function Dashboard({
     setLeadName("");
   }
 
+  function guessFileKind(fileName: string): FileReference["kind"] {
+    const name = fileName.toLowerCase();
+    if (name.includes("contract") || name.includes("agreement")) return "CONTRACT";
+    if (name.includes("permit") || name.includes("license")) return "PERMIT";
+    if (name.includes("invoice") || name.includes("payment")) return "INVOICE";
+    if (name.includes("quote") || name.includes("proposal")) return "QUOTE";
+    if (name.includes("mood") || name.includes("design")) return "MOODBOARD";
+    if (name.includes("client")) return "CLIENT_NOTE";
+    return "OTHER";
+  }
+
+  function beginAttachment(target: AttachmentDraft["target"], targetId: string) {
+    setAttachmentTarget({ target, targetId });
+    attachmentInputRef.current?.click();
+  }
+
+  function handleAttachmentFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !attachmentTarget) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      onAttachFileToRecord({
+        ...attachmentTarget,
+        file: {
+          id: `file-${Date.now()}`,
+          name: file.name,
+          kind: guessFileKind(file.name),
+          url: String(reader.result || ""),
+          addedAt: new Date().toISOString()
+        }
+      });
+      setAttachmentTarget(null);
+      event.target.value = "";
+    };
+    reader.readAsDataURL(file);
+  }
+
   function openEditor(kind: EditKind, draft: EditDraft) {
     setEditKind(kind);
     setEditDraft(draft);
@@ -730,6 +773,18 @@ export default function Dashboard({
             </a>
             <a href="/vendor" className="btn btn-soft">
               Vendor portal
+            </a>
+            <a href="/operations/vendors" className="btn btn-soft">
+              Vendor details
+            </a>
+            <a href="/operations/guests" className="btn btn-soft">
+              Guest seating
+            </a>
+            <a href="/operations/crm" className="btn btn-soft">
+              CRM
+            </a>
+            <a href="/admin" className="btn btn-ghost">
+              Admin
             </a>
             <a
               href={marketingHome}
@@ -968,6 +1023,12 @@ export default function Dashboard({
                   onChange={handleImportPackage}
                   hidden
                 />
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  onChange={handleAttachmentFile}
+                  hidden
+                />
               <button className="btn btn-danger" onClick={onClearSync}>
                 Reset sync
               </button>
@@ -1078,6 +1139,7 @@ export default function Dashboard({
                 <div className="record-actions">
                   <button className="btn btn-soft" onClick={() => onDecideClientApproval({ approvalId: approval.id, state: "APPROVED", note: "Approved from planner queue." })}>Approve</button>
                   <button className="btn btn-ghost" onClick={() => onDecideClientApproval({ approvalId: approval.id, state: "ESCALATION", note: "Needs planner escalation before client sign-off." })}>Escalate</button>
+                  <button className="btn btn-ghost" onClick={() => beginAttachment("approval", approval.id)}>Attach file</button>
                 </div>
               </div>
             ))}
@@ -1633,6 +1695,7 @@ export default function Dashboard({
               </div>
               <p>{vendor.logisticsNotes ?? vendor.notes}</p>
               <small>{vendor.riskNotes ?? "No open risk note."}</small>
+              <button className="btn btn-ghost" onClick={() => beginAttachment("vendor", vendor.id)}>Attach contract/invoice</button>
             </div>
           ))}
         </article>
@@ -1651,6 +1714,7 @@ export default function Dashboard({
               </div>
               <p>{venue.logisticsNotes ?? venue.notes}</p>
               <small>{venue.riskNotes ?? "No open risk note."}</small>
+              <button className="btn btn-ghost" onClick={() => beginAttachment("venue", venue.id)}>Attach permit/contract</button>
             </div>
           ))}
         </article>
@@ -1669,6 +1733,7 @@ export default function Dashboard({
               </div>
               <p>{destination.logisticsNotes ?? destination.culturalNotes}</p>
               <small>{destination.riskNotes ?? "No open risk note."}</small>
+              <button className="btn btn-ghost" onClick={() => beginAttachment("destination", destination.id)}>Attach destination file</button>
             </div>
           ))}
         </article>

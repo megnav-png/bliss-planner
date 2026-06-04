@@ -17,6 +17,7 @@ const TOKEN_VERSION = Number(process.env.BLISS_RELAY_TOKEN_VERSION || 1);
 
 type RelayAuditAction =
   | "HEALTH_READ"
+  | "AUDIT_READ"
   | "PAIRING_STARTED"
   | "PAIRING_CLAIMED"
   | "EVENTS_PUSHED"
@@ -327,6 +328,34 @@ export async function hostedRelayHealth(workspaceId = DEFAULT_WORKSPACE) {
             "BLISS_RELAY_AUDIT_RETENTION_DAYS"
           ],
     mode: "next-hosted-aes-256-gcm-durable-relay"
+  };
+}
+
+export async function hostedRelayAudit(workspaceId = DEFAULT_WORKSPACE, limit = 100) {
+  const storeAdapter = adapter();
+  const store = await loadStore();
+  const space = workspace(store, workspaceId);
+  cleanupExpiredPairingCodes(space);
+  applyRetention(space);
+  appendAudit(space, "AUDIT_READ", {
+    metadata: { requestedLimit: limit, storeBackend: storeAdapter.mode, tokenVersion: TOKEN_VERSION }
+  });
+  await saveStore(store);
+  return {
+    ok: true,
+    workspaceId,
+    cursor: store.cursor,
+    storeBackend: storeAdapter.mode,
+    durable: storeAdapter.durable,
+    tokenVersion: TOKEN_VERSION,
+    retention: {
+      auditDays: AUDIT_RETENTION_DAYS,
+      eventDays: EVENT_RETENTION_DAYS
+    },
+    auditLogs: space.auditLogs
+      .slice()
+      .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+      .slice(0, Math.max(1, Math.min(limit, 500)))
   };
 }
 

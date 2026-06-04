@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   completeOnboarding,
+  attachFileToRecord,
   deleteClientApproval,
   deleteCulturalChecklistItem,
   deleteDestination,
@@ -23,6 +24,7 @@ import {
   setSyncMode,
   startPlannerDevicePairing,
   clearPlannerSyncState,
+  AttachmentDraft,
   toggleTask,
   updateUserAccess,
   decideClientApproval,
@@ -201,6 +203,10 @@ export function useUpsertSeatingTable() {
 
 export function useUpsertPipelineLead() {
   return useStateMutation<PipelineLeadDraft>(upsertPipelineLead);
+}
+
+export function useAttachFileToRecord() {
+  return useStateMutation<AttachmentDraft>(attachFileToRecord);
 }
 
 export function useSyncDiagnostics() {

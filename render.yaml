@@ -36,6 +36,18 @@ services:
         sync: false
       - key: BLISS_AUTH_ALLOWED_DOMAIN
         sync: false
+      - key: BLISS_RESEND_API_KEY
+        sync: false
+      - key: BLISS_EMAIL_FROM
+        value: Bliss Planner <noreply@blissplanner.app>
+      - key: SENTRY_DSN
+        sync: false
+      - key: BLISS_RELAY_DATABASE_URL
+        sync: false
+      - key: BLISS_OBJECT_STORAGE_BUCKET
+        sync: false
+      - key: BLISS_OBJECT_STORAGE_REGION
+        sync: false
     disk:
       name: bliss-relay-data
       mountPath: /var/data/bliss-relay
