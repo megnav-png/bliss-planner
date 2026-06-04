@@ -20,6 +20,23 @@ function addResult(scenario, status, details = "") {
   scenarios.push({ scenario, status, details });
 }
 
+async function waitForStoredState(page, predicateSource, timeout = 15_000) {
+  await page.waitForFunction(
+    ({ storageKey, predicate }) => {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return false;
+      try {
+        const state = JSON.parse(raw);
+        return Function("state", `return (${predicate})(state);`)(state);
+      } catch {
+        return false;
+      }
+    },
+    { storageKey: STORAGE_KEY, predicate: predicateSource },
+    { timeout }
+  );
+}
+
 const seedState = {
   profile: {
     name: "Pilot Planner",
@@ -242,11 +259,13 @@ try {
 
   await page.getByRole("textbox", { name: "Add vendor" }).fill("Pilot Florals");
   await page.locator(".crud-card:has(h4:has-text('Vendors')) button:has-text('Add')").click();
+  await waitForStoredState(page, "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals')");
   await page.getByLabel("Operational records").getByText("Pilot Florals").first().waitFor({ timeout: 10_000 });
   addResult("Vendor CRUD", "PASS", "Vendor create flow added a new vendor record.");
 
   await page.getByRole("textbox", { name: "Add client approval" }).fill("Final music approval");
   await page.locator(".crud-card:has(h4:has-text('Client approvals')) button:has-text('Add')").click();
+  await waitForStoredState(page, "state => state.clientApprovals?.some(approval => approval.title === 'Final music approval')");
   await page.getByLabel("Operational records").getByText("Final music approval").first().waitFor({ timeout: 10_000 });
   addResult("Client approval CRUD", "PASS", "Client approval create flow added a new approval record.");
 } catch (error) {
