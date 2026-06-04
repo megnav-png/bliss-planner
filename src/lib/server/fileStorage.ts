@@ -2,11 +2,16 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { FileReference } from "@/lib/types";
+import { recordFileObject } from "@/lib/server/productionStore";
 
 type StoreFileInput = {
   name: string;
   kind: FileReference["kind"];
   dataUrl: string;
+  workspaceId?: string;
+  recordId?: string;
+  actorEmail?: string;
+  clientFacing?: boolean;
 };
 
 function env(name: string) {
@@ -71,7 +76,7 @@ export async function storeFile(input: StoreFileInput): Promise<FileReference> {
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body?.error || "Object storage upload failed.");
-    return {
+    const stored: FileReference = {
       id,
       name: input.name,
       kind: input.kind,
@@ -82,11 +87,27 @@ export async function storeFile(input: StoreFileInput): Promise<FileReference> {
       storageKey: body.key || key,
       addedAt: new Date().toISOString()
     };
+    if (input.workspaceId) {
+      await recordFileObject({
+        workspaceId: input.workspaceId,
+        recordId: input.recordId,
+        provider: "external-object",
+        storageKey: body.key || key,
+        publicUrl: stored.url,
+        fileName: input.name,
+        mimeType: parsed.mimeType,
+        sizeBytes: parsed.bytes.length,
+        checksum,
+        clientFacing: input.clientFacing,
+        actorEmail: input.actorEmail
+      });
+    }
+    return stored;
   }
 
   await mkdir(fileStoreDir(), { recursive: true });
   await writeFile(path.join(fileStoreDir(), key), parsed.bytes);
-  return {
+  const stored: FileReference = {
     id,
     name: input.name,
     kind: input.kind,
@@ -97,6 +118,22 @@ export async function storeFile(input: StoreFileInput): Promise<FileReference> {
     storageKey: key,
     addedAt: new Date().toISOString()
   };
+  if (input.workspaceId) {
+    await recordFileObject({
+      workspaceId: input.workspaceId,
+      recordId: input.recordId,
+      provider: "server-file",
+      storageKey: key,
+      publicUrl: stored.url,
+      fileName: input.name,
+      mimeType: parsed.mimeType,
+      sizeBytes: parsed.bytes.length,
+      checksum,
+      clientFacing: input.clientFacing,
+      actorEmail: input.actorEmail
+    });
+  }
+  return stored;
 }
 
 export async function readStoredFile(key: string) {

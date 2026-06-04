@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { NextRequest } from "next/server";
 import { seedState } from "@/lib/fakeData";
 import { AccountRole, AuthSession, PortalAccess } from "@/lib/types";
+import { upsertAccount, upsertWorkspace } from "@/lib/server/productionStore";
 
 const SESSION_COOKIE = "bliss_session";
 const STATE_COOKIE = "bliss_oauth_state";
@@ -256,9 +257,10 @@ export async function completeManagedLogin(request: NextRequest) {
   }
 
   const mapped = roleProfile(profile.email || "");
+  const workspaceId = seedState.workspace.id;
   const session: ManagedAuthStatus["session"] = {
     userId: profile.sub || profile.email || "managed-user",
-    workspaceId: seedState.workspace.id,
+    workspaceId,
     role: mapped.role,
     issuedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -266,6 +268,23 @@ export async function completeManagedLogin(request: NextRequest) {
     email: profile.email || "planner@example.com",
     portalAccess: mapped.portalAccess
   };
+
+  await upsertWorkspace({
+    id: workspaceId,
+    name: seedState.workspace.name,
+    region: seedState.workspace.region,
+    dataResidency: seedState.workspace.dataResidency,
+    authProvider: config.mode.toUpperCase()
+  });
+  await upsertAccount({
+    workspaceId,
+    externalSub: profile.sub,
+    email: session.email,
+    name: session.userName,
+    role: session.role,
+    status: "ACTIVE",
+    portalAccess: session.portalAccess
+  });
 
   cookieStore.set(SESSION_COOKIE, encodeSession(session), {
     httpOnly: true,

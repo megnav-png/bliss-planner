@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { seedState } from "@/lib/fakeData";
 import { requireManagedAccess } from "@/lib/server/managedAuth";
+import { listRecords } from "@/lib/server/productionStore";
+import { ClientApproval, Wedding } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +24,19 @@ export default async function ClientPortalPage() {
       </main>
     );
   }
-  const wedding = seedState.weddings.find((item) => item.id === seedState.activeWeddingId) ?? seedState.weddings[0];
+  const workspaceId = auth.session.workspaceId || "default-workspace";
+  const [productionWeddings, productionApprovals] = await Promise.all([
+    listRecords(workspaceId, "weddings"),
+    listRecords(workspaceId, "approvals")
+  ]);
+  const wedding =
+    (productionWeddings[0]?.payload as unknown as Wedding | undefined) ??
+    seedState.weddings.find((item) => item.id === seedState.activeWeddingId) ??
+    seedState.weddings[0];
   const tasks = seedState.tasks.filter((task) => task.weddingId === wedding.id);
-  const approvals = seedState.clientApprovals.filter((approval) => approval.weddingId === wedding.id);
+  const approvals = productionApprovals.length
+    ? productionApprovals.map((record) => record.payload as unknown as ClientApproval).filter((approval) => approval.weddingId === wedding.id)
+    : seedState.clientApprovals.filter((approval) => approval.weddingId === wedding.id);
   const decisions = wedding.clientStatus.pendingDecisions;
   const reviewSteps = [
     "Review the approval center",

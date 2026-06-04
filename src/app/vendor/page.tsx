@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { seedState } from "@/lib/fakeData";
 import { requireManagedAccess } from "@/lib/server/managedAuth";
+import { listRecords } from "@/lib/server/productionStore";
+import { Vendor, Venue, Wedding } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +24,23 @@ export default async function VendorPortalPage() {
       </main>
     );
   }
-  const wedding = seedState.weddings.find((item) => item.id === seedState.activeWeddingId) ?? seedState.weddings[0];
-  const vendors = seedState.vendors.filter((vendor) => vendor.weddingId === wedding.id);
+  const workspaceId = auth.session.workspaceId || "default-workspace";
+  const [productionWeddings, productionVendors, productionVenues] = await Promise.all([
+    listRecords(workspaceId, "weddings"),
+    listRecords(workspaceId, "vendors"),
+    listRecords(workspaceId, "venues")
+  ]);
+  const wedding =
+    (productionWeddings[0]?.payload as unknown as Wedding | undefined) ??
+    seedState.weddings.find((item) => item.id === seedState.activeWeddingId) ??
+    seedState.weddings[0];
+  const vendors = productionVendors.length
+    ? productionVendors.map((record) => record.payload as unknown as Vendor).filter((vendor) => vendor.weddingId === wedding.id)
+    : seedState.vendors.filter((vendor) => vendor.weddingId === wedding.id);
   const tasks = seedState.tasks.filter((task) => task.weddingId === wedding.id && task.impacts.includes("VENDORS"));
-  const venues = seedState.venues.filter((venue) => venue.weddingId === wedding.id);
+  const venues = productionVenues.length
+    ? productionVenues.map((record) => record.payload as unknown as Venue).filter((venue) => venue.weddingId === wedding.id)
+    : seedState.venues.filter((venue) => venue.weddingId === wedding.id);
   const deliverables = [
     "Confirm final scope and service count",
     "Upload current quote or invoice",

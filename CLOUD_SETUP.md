@@ -140,9 +140,24 @@ For the Postgres-backed relay, switch to:
 ```bash
 BLISS_RELAY_STORE_BACKEND=postgres
 BLISS_RELAY_DATABASE_URL=<postgres connection string>
+BLISS_APP_DATABASE_URL=<optional separate planner-records postgres connection string>
 BLISS_RELAY_SECRET=<long random secret>
 BLISS_RELAY_TOKEN=<long random bearer token>
 ```
+
+Production planner records:
+- The production CRUD API stores planner records in Postgres using `BLISS_APP_DATABASE_URL`, falling back to `BLISS_RELAY_DATABASE_URL`.
+- Apply or inspect the schema in `phase7/production-schema.sql`.
+- CRUD endpoints:
+  - `GET/POST /api/records/weddings`
+  - `GET/POST /api/records/vendors`
+  - `GET/POST /api/records/venues`
+  - `GET/POST /api/records/destinations`
+  - `GET/POST /api/records/approvals`
+  - `GET/POST /api/records/guests`
+  - `GET/POST /api/records/seatingTables`
+  - `GET/POST /api/records/crm`
+  - `GET/PATCH/DELETE /api/records/:entity/:id`
 
 Managed auth config:
 
@@ -173,6 +188,20 @@ BLISS_OBJECT_STORAGE_BUCKET=<optional object bucket>
 BLISS_OBJECT_STORAGE_REGION=<optional object region>
 BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT=<optional external upload endpoint>
 BLISS_OBJECT_STORAGE_TOKEN=<optional upload endpoint token>
+```
+
+Portal and admin production APIs:
+- `GET /api/portal/client` returns client-scoped weddings, approvals, guests, and files.
+- `POST /api/portal/client` records approval decisions.
+- `GET /api/portal/vendor` returns vendor-scoped wedding, vendor, venue, destination, and file data.
+- `POST /api/portal/vendor` records vendor updates.
+- `GET/POST /api/sync/conflicts` lists and resolves sync conflicts for planners/admins.
+
+Billing hardening:
+
+```bash
+BLISS_BILLING_CHECKOUT_URL=<provider checkout link or portal>
+STRIPE_SECRET_KEY=<optional future Stripe secret>
 ```
 
 Invite email config:

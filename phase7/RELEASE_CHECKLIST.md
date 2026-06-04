@@ -56,8 +56,13 @@
    - [ ] `/admin` relay audit viewer loads with the real relay token.
    - [ ] Managed auth provider env is set: `BLISS_AUTH_PROVIDER`, `BLISS_AUTH_CLIENT_ID`, `BLISS_AUTH_CLIENT_SECRET`, `BLISS_AUTH_SESSION_SECRET`, `BLISS_PUBLIC_APP_URL`.
    - [ ] Role allowlists are set: `BLISS_ADMIN_EMAILS`, `BLISS_PLANNER_EMAILS`, `BLISS_PORTAL_CLIENT_EMAILS`, `BLISS_PORTAL_VENDOR_EMAILS`.
+   - [ ] Production planner record database is set: `BLISS_APP_DATABASE_URL` or shared `BLISS_RELAY_DATABASE_URL`.
+   - [ ] `phase7/production-schema.sql` is reviewed/applied, and `/api/production/health` reports `backend: postgres`.
+   - [ ] API CRUD smoke checks pass for `/api/records/weddings`, `/api/records/vendors`, `/api/records/venues`, `/api/records/destinations`, `/api/records/approvals`, `/api/records/guests`, `/api/records/seatingTables`, `/api/records/crm`, and `/api/records/files`.
+   - [ ] Client/vendor production portal APIs are verified with real Google test users.
    - [ ] File storage env is set: `BLISS_FILE_STORE_DIR`, or external object storage env `BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT` and token.
    - [ ] Invite email provider env is set: `BLISS_EMAIL_PROVIDER`, `BLISS_EMAIL_FROM`, and either `BLISS_RESEND_API_KEY` or `BLISS_EMAIL_WEBHOOK_URL`.
+   - [ ] Billing env is set before charging customers: `BLISS_BILLING_CHECKOUT_URL` or a real Stripe Checkout integration.
    - [ ] Monitoring env is set: `SENTRY_DSN`, plus Render deploy alerts.
    - [ ] Paid-release gates in `phase7/PAID_RELEASE_HARDENING.md` are reviewed.
    - [ ] Encrypted package format approved before relay API work begins.

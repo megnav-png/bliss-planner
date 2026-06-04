@@ -6,11 +6,22 @@
 - Keep persistent disk as a fallback only; Postgres should become the primary relay metadata store before charging customers.
 - Run `BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_RELAY_TOKEN=<token> npm run sync:relay:health` after every deploy.
 
+## Planner Record Persistence
+- Production record store: `BLISS_APP_DATABASE_URL`, falling back to `BLISS_RELAY_DATABASE_URL`.
+- Schema: `phase7/production-schema.sql`.
+- API-backed CRUD is available under `/api/records/:entity` for weddings, vendors, venues, destinations, approvals, guests, seating tables, CRM leads, and files.
+- Keep the local-first dashboard behavior until the migration pass moves each UI mutation to these APIs.
+
 ## Object Storage
 - Store uploaded contracts, permits, invoices, approvals, and snapshots through the file storage provider before paid release.
 - Current hosted provider: server-file storage through `/api/files/store` with `BLISS_FILE_STORE_DIR`.
 - Object-storage handoff: set `BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT`, `BLISS_OBJECT_STORAGE_TOKEN`, `BLISS_OBJECT_STORAGE_BUCKET`, and `BLISS_OBJECT_STORAGE_REGION`.
 - Product rule: client-visible files must be encrypted before upload and revocable from the workspace admin surface.
+
+## Portals
+- Client portal production API: `GET/POST /api/portal/client`.
+- Vendor portal production API: `GET/POST /api/portal/vendor`.
+- Real UX pass requires live Google users added to `BLISS_PORTAL_CLIENT_EMAILS` and `BLISS_PORTAL_VENDOR_EMAILS`.
 
 ## Regional Data Policy
 - Workspace setup must ask for region/data-residency preference before cloud sync is enabled.
@@ -33,6 +44,11 @@
 - Event endpoint: `/api/monitoring/event`.
 - Configure `SENTRY_DSN` for production monitoring.
 - Add Render deploy notification webhooks to Slack/email before a paid launch.
+
+## Billing
+- Billing status endpoint: `/api/billing/status`.
+- Checkout shell: `/api/billing/checkout`.
+- Required before charging customers: choose `BLISS_BILLING_CHECKOUT_URL` or wire `STRIPE_SECRET_KEY` to real Checkout Sessions, add plan limits, tax terms, refund policy, and invoice exports.
 
 ## Signing Credentials
 - macOS signed/notarized builds remain blocked until Apple Developer ID credentials are available:
