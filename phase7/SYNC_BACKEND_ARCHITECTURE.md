@@ -12,11 +12,14 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 
 2. **Sync relay API**
    - Node.js service using Fastify or Next.js route handlers.
-   - Prisma with PostgreSQL for device registry, package metadata, sync cursors, and audit records.
+   - Next.js route handlers now support two persistence modes: Render persistent disk file store and Postgres JSONB store.
+   - Prisma/PostgreSQL remains the target structure for full device registry, package metadata, sync cursors, and audit records as the schema grows.
    - Object storage such as Cloudflare R2, Google Cloud Storage, or S3 for encrypted snapshot packages.
    - No plaintext wedding, guest, vendor, budget, cultural, or client data is stored server-side.
    - Prototype command: `BLISS_RELAY_SECRET=dev-secret BLISS_RELAY_TOKEN=dev-token npm run sync:relay:prototype`.
-   - Hosted route handlers are available under `/api/sync/*` and `/api/devices/*`; set `BLISS_RELAY_STORE_DIR` to a persistent disk path in production.
+   - Hosted route handlers are available under `/api/sync/*` and `/api/devices/*`.
+   - Render persistent disk mode: set `BLISS_RELAY_STORE_BACKEND=file` and `BLISS_RELAY_STORE_DIR=/var/data/bliss-relay`.
+   - Postgres mode: set `BLISS_RELAY_STORE_BACKEND=postgres` and `BLISS_RELAY_DATABASE_URL`.
 
 3. **Identity and device continuity**
    - Planner account owns one or more workspaces.
@@ -42,6 +45,7 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 - Keep export/import JSON available even when cloud sync is disabled.
 - Offer regional storage selection during workspace setup for global planners.
 - Add "delete cloud relay data" as a hard product requirement before paid release.
+- Require `BLISS_RELAY_SECRET` and `BLISS_RELAY_TOKEN` in production.
 
 ## Implementation Order
 1. Add local entity revisions and updated-at metadata to every wedding, task, readiness, cultural, client, vendor, and venue entity.
@@ -58,5 +62,6 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 - `BLISS_RELAY_TOKEN` enables bearer-token or `x-bliss-relay-token` auth for all relay endpoints.
 - The dashboard exposes device pairing and delete-cloud-data controls once a relay endpoint is configured.
 - Production version now has a hosted route-handler relay, planner account seed model, pairing, revocation, conflict-review surface, and delete-cloud-data flow.
-- For durable production hosting, configure `BLISS_RELAY_STORE_DIR` to a persistent disk mount or replace the file store with PostgreSQL/object storage before paid release.
-- Production hardening still needs managed auth provider integration, region-aware storage selection, token rotation policy, and audit retention policy.
+- Durable production hosting can use `render.yaml` persistent disk settings or the Postgres adapter with `BLISS_RELAY_STORE_BACKEND=postgres`.
+- Production auth boundary now supports Google/OIDC configuration through `/api/auth/*` and reports missing provider settings in-app.
+- Production hardening still needs user acceptance around regional storage selection, token rotation policy, and audit retention policy.

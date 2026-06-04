@@ -115,3 +115,48 @@ Then from a separate terminal on that same runner:
 ```bash
 WOVOPS_APP_URL=http://127.0.0.1:3002 WOVOPS_SKIP_LOCAL_START=true npm run phase6:pilot:cloud
 ```
+
+## Option F — Render production relay storage
+
+The repo includes `render.yaml` for a Render web service with a persistent disk mounted at:
+
+```bash
+/var/data/bliss-relay
+```
+
+Use these environment values in Render when configuring the hosted relay:
+
+```bash
+BLISS_PUBLIC_APP_URL=https://bliss-planner.onrender.com
+BLISS_RELAY_STORE_BACKEND=file
+BLISS_RELAY_STORE_DIR=/var/data/bliss-relay
+BLISS_RELAY_STORE_FILE=bliss-planner-hosted-relay-store.json
+BLISS_RELAY_SECRET=<long random secret>
+BLISS_RELAY_TOKEN=<long random bearer token>
+```
+
+For the Postgres-backed relay, switch to:
+
+```bash
+BLISS_RELAY_STORE_BACKEND=postgres
+BLISS_RELAY_DATABASE_URL=<postgres connection string>
+BLISS_RELAY_SECRET=<long random secret>
+BLISS_RELAY_TOKEN=<long random bearer token>
+```
+
+Managed auth config:
+
+```bash
+BLISS_AUTH_PROVIDER=google
+BLISS_AUTH_CLIENT_ID=<google oauth client id>
+BLISS_AUTH_CLIENT_SECRET=<google oauth client secret>
+BLISS_AUTH_SESSION_SECRET=<long random auth secret>
+BLISS_AUTH_ALLOWED_DOMAIN=<optional company domain>
+BLISS_PUBLIC_APP_URL=https://bliss-planner.onrender.com
+```
+
+The relay health route reports whether the active backend is durable:
+
+```bash
+curl https://bliss-planner.onrender.com/api/sync/health
+```

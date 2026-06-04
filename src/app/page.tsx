@@ -9,6 +9,7 @@ import {
   useExportSyncPackage,
   useImportSyncPackage,
   usePlannerState,
+  usePlannerAuthStatus,
   useRunPlannerSync,
   useSetActiveWedding,
   useSetPlannerIdentity,
@@ -35,6 +36,7 @@ import {
 
 export default function HomePage() {
   const { data: state, isLoading, isError, refetch } = usePlannerState();
+  const authStatusQuery = usePlannerAuthStatus();
   const [localStateOverride, setLocalStateOverride] = useState<typeof state | null>(null);
   const completeOnboardingMutation = useCompleteOnboarding();
   const toggleTaskMutation = useToggleTask();
@@ -109,6 +111,7 @@ export default function HomePage() {
   return (
     <Dashboard
       state={plannerState}
+      authStatus={authStatusQuery.data}
       activeWeddingId={plannerState.activeWeddingId}
       syncDiagnostics={syncDiagnosticsQuery.data}
       syncSummary={runSyncMutation.data}

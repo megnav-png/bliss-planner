@@ -83,8 +83,8 @@ const checks = [];
 const consoleErrors = [];
 
 const portalChecks = [
-  { path: "/client", heading: "Client portal", text: "Approval center" },
-  { path: "/vendor", heading: "Vendor portal", text: "Vendor task board" }
+  { path: "/client", heading: "Client portal", text: "Client review flow" },
+  { path: "/vendor", heading: "Vendor portal", text: "Vendor update flow" }
 ];
 
 try {

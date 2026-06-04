@@ -39,6 +39,34 @@ enum LocalSyncMode {
   OPT_IN_SYNC
 }
 
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  OIDC
+}
+
+enum AccountRole {
+  OWNER
+  PLANNER
+  PRODUCTION
+  CLIENT
+  VENDOR
+  VIEWER
+}
+
+enum AccountStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum PortalAccess {
+  NONE
+  CLIENT_PORTAL
+  VENDOR_PORTAL
+  FULL_WORKSPACE
+}
+
 enum SyncResolution {
   PENDING
   LOCAL_WINS
@@ -760,7 +788,7 @@ model SyncDevice {
   lastSeenAt      DateTime    @default(now())
   firstSeenAt     DateTime    @default(now())
   createdAt       DateTime    @default(now())
-  updatedAt       @updatedAt
+  updatedAt       DateTime    @updatedAt
 
   cursors         SyncCursor[]
   outbox          SyncOutbox[]
@@ -816,4 +844,66 @@ model SyncConflict {
   resolvedAt      DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+}
+
+model WorkspaceAccount {
+  id             String       @id @default(cuid())
+  name           String
+  ownerUserId    String
+  region         String
+  dataResidency  String
+  authProvider   AuthProvider @default(LOCAL)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  users          AccountUser[]
+  sessions       ManagedAuthSession[]
+  relayStores    SyncRelayStore[]
+
+  @@index([authProvider])
+}
+
+model AccountUser {
+  id            String          @id @default(cuid())
+  workspaceId   String
+  workspace     WorkspaceAccount @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  externalSub   String?
+  name          String
+  email         String
+  role          AccountRole     @default(VIEWER)
+  status        AccountStatus   @default(INVITED)
+  portalAccess  PortalAccess    @default(NONE)
+  lastActiveAt  DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([workspaceId, email])
+  @@index([externalSub])
+}
+
+model ManagedAuthSession {
+  id           String           @id @default(cuid())
+  workspaceId  String
+  workspace    WorkspaceAccount @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId       String
+  role         AccountRole
+  issuedAt     DateTime
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime         @default(now())
+
+  @@index([workspaceId, userId])
+  @@index([expiresAt])
+}
+
+model SyncRelayStore {
+  id           String           @id @default(cuid())
+  workspaceId  String
+  workspace    WorkspaceAccount @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  backend      String
+  store        Json
+  updatedAt    DateTime         @updatedAt
+  createdAt    DateTime         @default(now())
+
+  @@unique([workspaceId, backend])
 }

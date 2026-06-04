@@ -6,6 +6,11 @@ export default function ClientPortalPage() {
   const tasks = seedState.tasks.filter((task) => task.weddingId === wedding.id);
   const approvals = seedState.clientApprovals.filter((approval) => approval.weddingId === wedding.id);
   const decisions = wedding.clientStatus.pendingDecisions;
+  const reviewSteps = [
+    "Review the approval center",
+    "Confirm pending decisions",
+    "Wait for the next planner update"
+  ];
 
   return (
     <main className="portal-shell">
@@ -55,20 +60,36 @@ export default function ClientPortalPage() {
           </div>
         </article>
 
+        <article className="panel card portal-action-card">
+          <h3>Client review flow</h3>
+          <div className="portal-steps" aria-label="Client review workflow">
+            {reviewSteps.map((step, index) => (
+              <div key={step} className="portal-step">
+                <span>{index + 1}</span>
+                <strong>{step}</strong>
+              </div>
+            ))}
+          </div>
+          <div className="portal-actions">
+            <button className="btn btn-primary" type="button">Send decision note</button>
+            <button className="btn btn-soft" type="button">Request planner call</button>
+          </div>
+        </article>
+      </section>
+
+      <section className="grid two equal">
         <article className="panel card">
           <h3>Pending decisions</h3>
           <div className="portal-list">
             {decisions.map((decision) => (
               <div key={decision} className="portal-row">
                 <strong>{decision}</strong>
-                <p>Reviewed in the next planner update.</p>
+                <p>Client-visible and reviewed in the next planner update.</p>
               </div>
             ))}
           </div>
         </article>
-      </section>
 
-      <section className="grid two equal">
         <article className="panel card">
           <h3>Schedule snapshot</h3>
           <div className="portal-list">
@@ -81,7 +102,9 @@ export default function ClientPortalPage() {
             ))}
           </div>
         </article>
+      </section>
 
+      <section className="grid two equal">
         <article className="panel card">
           <h3>Guest and cultural notes</h3>
           <div className="portal-list">
@@ -91,6 +114,28 @@ export default function ClientPortalPage() {
                 <p>{item.culture} · owner {item.owner}</p>
               </div>
             ))}
+          </div>
+        </article>
+
+        <article className="panel card portal-action-card">
+          <h3>Experience summary</h3>
+          <div className="portal-grid">
+            <div>
+              <span className="metric-label">Relationship owner</span>
+              <strong>{wedding.clientStatus.relationshipOwner}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Sentiment</span>
+              <strong>{wedding.clientStatus.sentiment}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Next update</span>
+              <strong>{new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(wedding.clientStatus.nextClientUpdateAt))}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Portal access</span>
+              <strong>Client only</strong>
+            </div>
           </div>
         </article>
       </section>

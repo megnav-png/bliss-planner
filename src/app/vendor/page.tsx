@@ -6,6 +6,11 @@ export default function VendorPortalPage() {
   const vendors = seedState.vendors.filter((vendor) => vendor.weddingId === wedding.id);
   const tasks = seedState.tasks.filter((task) => task.weddingId === wedding.id && task.impacts.includes("VENDORS"));
   const venues = seedState.venues.filter((venue) => venue.weddingId === wedding.id);
+  const deliverables = [
+    "Confirm final scope and service count",
+    "Upload current quote or invoice",
+    "Flag access, load-in, or power constraints"
+  ];
 
   return (
     <main className="portal-shell">
@@ -43,6 +48,27 @@ export default function VendorPortalPage() {
           </div>
         </article>
 
+        <article className="panel card portal-action-card">
+          <h3>Vendor update flow</h3>
+          <form className="portal-form">
+            <label>
+              Update type
+              <select defaultValue="scope">
+                <option value="scope">Scope confirmation</option>
+                <option value="quote">Quote or payment update</option>
+                <option value="risk">Risk or blocker</option>
+              </select>
+            </label>
+            <label>
+              Message to planner
+              <textarea defaultValue="We are ready to confirm the current scope once guest counts are locked." />
+            </label>
+            <button className="btn btn-primary" type="button">Submit vendor update</button>
+          </form>
+        </article>
+      </section>
+
+      <section className="grid two equal">
         <article className="panel card">
           <h3>Venue and logistics brief</h3>
           <div className="portal-list">
@@ -55,27 +81,39 @@ export default function VendorPortalPage() {
             ))}
           </div>
         </article>
+
+        <article className="panel card">
+          <h3>Shared constraints</h3>
+          <div className="portal-grid">
+            <div>
+              <span className="metric-label">Guest target</span>
+              <strong>{wedding.guestTarget}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Risk</span>
+              <strong>{wedding.riskLevel}</strong>
+            </div>
+            <div>
+              <span className="metric-label">Cultural notes</span>
+              <strong>{wedding.culturalChecklist.length} checklist items</strong>
+            </div>
+            <div>
+              <span className="metric-label">Readiness</span>
+              <strong>{wedding.readinessItems.filter((item) => item.area === "VENDOR").length} vendor gates</strong>
+            </div>
+          </div>
+        </article>
       </section>
 
-      <section className="panel card">
-        <h3>Shared constraints</h3>
-        <div className="portal-grid">
-          <div>
-            <span className="metric-label">Guest target</span>
-            <strong>{wedding.guestTarget}</strong>
-          </div>
-          <div>
-            <span className="metric-label">Risk</span>
-            <strong>{wedding.riskLevel}</strong>
-          </div>
-          <div>
-            <span className="metric-label">Cultural notes</span>
-            <strong>{wedding.culturalChecklist.length} checklist items</strong>
-          </div>
-          <div>
-            <span className="metric-label">Readiness</span>
-            <strong>{wedding.readinessItems.filter((item) => item.area === "VENDOR").length} vendor gates</strong>
-          </div>
+      <section className="panel card portal-action-card">
+        <h3>Deliverables checklist</h3>
+        <div className="portal-list">
+          {deliverables.map((item) => (
+            <div key={item} className="portal-row compact">
+              <strong>{item}</strong>
+              <span className="pill todo">Required before final run sheet</span>
+            </div>
+          ))}
         </div>
       </section>
     </main>

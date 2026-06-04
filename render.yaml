@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: bliss-planner
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BLISS_PUBLIC_APP_URL
+        value: https://bliss-planner.onrender.com
+      - key: BLISS_RELAY_STORE_BACKEND
+        value: file
+      - key: BLISS_RELAY_STORE_DIR
+        value: /var/data/bliss-relay
+      - key: BLISS_RELAY_STORE_FILE
+        value: bliss-planner-hosted-relay-store.json
+      - key: BLISS_RELAY_SECRET
+        sync: false
+      - key: BLISS_RELAY_TOKEN
+        sync: false
+      - key: BLISS_AUTH_PROVIDER
+        value: google
+      - key: BLISS_AUTH_CLIENT_ID
+        sync: false
+      - key: BLISS_AUTH_CLIENT_SECRET
+        sync: false
+      - key: BLISS_AUTH_SESSION_SECRET
+        sync: false
+      - key: BLISS_AUTH_ALLOWED_DOMAIN
+        sync: false
+    disk:
+      name: bliss-relay-data
+      mountPath: /var/data/bliss-relay
+      sizeGB: 1

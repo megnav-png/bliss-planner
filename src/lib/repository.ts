@@ -1,4 +1,5 @@
 import { AppState, ClientApproval, CulturalChecklistItem, DestinationProfile, Vendor, Venue } from "./types";
+import type { ManagedAuthStatus } from "./server/managedAuth";
 import { seedState } from "./fakeData";
 import { loadPersistedState, saveState } from "./storage";
 import {
@@ -174,6 +175,14 @@ function recordPlannerPatchChanges(previous: AppState, next: AppState) {
 export async function getPlannerState(): Promise<AppState> {
   await delay(30);
   return readState();
+}
+
+export async function getPlannerAuthStatus(): Promise<ManagedAuthStatus> {
+  const response = await fetch("/api/auth/status");
+  if (!response.ok) {
+    throw new Error("Could not load managed auth status.");
+  }
+  return response.json();
 }
 
 export async function savePlannerState(nextState: AppState): Promise<PlannerStateResult> {

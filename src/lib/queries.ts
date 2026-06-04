@@ -9,6 +9,7 @@ import {
   deletePlannerRelayWorkspace,
   exportPlannerSyncPackage,
   getPlannerState,
+  getPlannerAuthStatus,
   getPlannerSyncDiagnostics,
   importPlannerSyncPackage,
   OnboardingPayload,
@@ -35,6 +36,7 @@ import {
   VenueDraft
 } from "./repository";
 import { AppState } from "./types";
+import type { ManagedAuthStatus } from "./server/managedAuth";
 import type { DeleteRelayWorkspaceResult, DevicePairingResult, RevokeDeviceResult, SyncDiagnostics, SyncRunSummary } from "./syncEngine";
 
 export const plannerQueryKeys = {
@@ -43,7 +45,8 @@ export const plannerQueryKeys = {
   sync: {
     all: ["planner", "sync"] as const,
     diagnostics: () => ["planner", "sync", "diagnostics"] as const
-  }
+  },
+  auth: () => ["planner", "auth"] as const
 };
 
 export function usePlannerState() {
@@ -51,6 +54,14 @@ export function usePlannerState() {
     queryKey: plannerQueryKeys.state(),
     queryFn: getPlannerState,
     staleTime: 3_000
+  });
+}
+
+export function usePlannerAuthStatus() {
+  return useQuery<ManagedAuthStatus>({
+    queryKey: plannerQueryKeys.auth(),
+    queryFn: getPlannerAuthStatus,
+    staleTime: 30_000
   });
 }
 

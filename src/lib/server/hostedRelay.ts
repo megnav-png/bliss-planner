@@ -3,11 +3,14 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 
 const SECRET = process.env.BLISS_RELAY_SECRET || "hosted-dev-only-change-me";
 const AUTH_TOKEN = process.env.BLISS_RELAY_TOKEN || "";
+const STORE_BACKEND = (process.env.BLISS_RELAY_STORE_BACKEND || "file").toLowerCase();
 const STORE_DIR = process.env.BLISS_RELAY_STORE_DIR || "/tmp";
 const STORE_FILE = process.env.BLISS_RELAY_STORE_FILE || "bliss-planner-hosted-relay-store.json";
 const STORE_PATH = `${STORE_DIR}/${STORE_FILE}`;
+const POSTGRES_URL = process.env.BLISS_RELAY_DATABASE_URL || process.env.DATABASE_URL || "";
 const DEFAULT_WORKSPACE = "default-workspace";
 const PAIRING_TTL_MS = Number(process.env.BLISS_RELAY_PAIRING_TTL_MS || 10 * 60 * 1000);
+const POSTGRES_ROW_ID = "primary";
 
 type RelayStore = {
   cursor: number;
@@ -36,6 +39,16 @@ type RelayDevice = {
   revokedAt: string | null;
 };
 
+type StoreAdapter = {
+  mode: "file" | "postgres";
+  durable: boolean;
+  location: string;
+  load: () => Promise<RelayStore>;
+  save: (store: RelayStore) => Promise<void>;
+};
+
+let postgresPool: any | null = null;
+
 function emptyStore(): RelayStore {
   return {
     cursor: 0,
@@ -49,7 +62,7 @@ function emptyStore(): RelayStore {
   };
 }
 
-async function loadStore(): Promise<RelayStore> {
+async function loadFileStore(): Promise<RelayStore> {
   try {
     return JSON.parse(await readFile(STORE_PATH, "utf8")) as RelayStore;
   } catch {
@@ -57,11 +70,85 @@ async function loadStore(): Promise<RelayStore> {
   }
 }
 
-async function saveStore(store: RelayStore) {
+async function saveFileStore(store: RelayStore) {
   await mkdir(STORE_DIR, { recursive: true });
   const tempPath = `${STORE_PATH}.tmp`;
   await writeFile(tempPath, JSON.stringify(store, null, 2));
   await rename(tempPath, STORE_PATH);
+}
+
+async function pool() {
+  if (!POSTGRES_URL) {
+    throw new Error("BLISS_RELAY_STORE_BACKEND=postgres requires BLISS_RELAY_DATABASE_URL or DATABASE_URL.");
+  }
+  if (!postgresPool) {
+    const { Pool } = await import("pg");
+    postgresPool = new Pool({
+      connectionString: POSTGRES_URL,
+      ssl: process.env.BLISS_RELAY_POSTGRES_SSL === "false" ? false : { rejectUnauthorized: false },
+      max: Number(process.env.BLISS_RELAY_POSTGRES_POOL_SIZE || 3)
+    });
+  }
+  return postgresPool;
+}
+
+async function ensurePostgresStore() {
+  const client = await pool();
+  await client.query(`
+    create table if not exists bliss_relay_store (
+      id text primary key,
+      store jsonb not null,
+      updated_at timestamptz not null default now()
+    )
+  `);
+}
+
+async function loadPostgresStore(): Promise<RelayStore> {
+  await ensurePostgresStore();
+  const client = await pool();
+  const result = await client.query("select store from bliss_relay_store where id = $1", [POSTGRES_ROW_ID]);
+  return (result.rows[0]?.store as RelayStore | undefined) ?? emptyStore();
+}
+
+async function savePostgresStore(store: RelayStore) {
+  await ensurePostgresStore();
+  const client = await pool();
+  await client.query(
+    `
+      insert into bliss_relay_store (id, store, updated_at)
+      values ($1, $2::jsonb, now())
+      on conflict (id) do update set store = excluded.store, updated_at = now()
+    `,
+    [POSTGRES_ROW_ID, JSON.stringify(store)]
+  );
+}
+
+function adapter(): StoreAdapter {
+  if (STORE_BACKEND === "postgres") {
+    return {
+      mode: "postgres",
+      durable: Boolean(POSTGRES_URL),
+      location: POSTGRES_URL ? "postgres://configured" : "postgres://missing-database-url",
+      load: loadPostgresStore,
+      save: savePostgresStore
+    };
+  }
+
+  return {
+    mode: "file",
+    durable: STORE_DIR !== "/tmp" && STORE_DIR !== "/private/tmp",
+    location: STORE_PATH,
+    load: loadFileStore,
+    save: saveFileStore
+  };
+}
+
+async function loadStore(): Promise<RelayStore> {
+  return adapter().load();
+}
+
+async function saveStore(store: RelayStore) {
+  await adapter().save(store);
 }
 
 function workspace(store: RelayStore, workspaceId = DEFAULT_WORKSPACE) {
@@ -118,6 +205,7 @@ export function authorizeRelayRequest(headers: Headers) {
 }
 
 export async function hostedRelayHealth(workspaceId = DEFAULT_WORKSPACE) {
+  const storeAdapter = adapter();
   const store = await loadStore();
   const space = workspace(store, workspaceId);
   cleanupExpiredPairingCodes(space);
@@ -130,8 +218,14 @@ export async function hostedRelayHealth(workspaceId = DEFAULT_WORKSPACE) {
     deviceCount: Object.keys(space.devices).length,
     pendingPairingCount: Object.keys(space.pairingCodes).length,
     authRequired: Boolean(AUTH_TOKEN),
-    storePath: STORE_PATH,
-    mode: "next-hosted-aes-256-gcm-persistent-relay"
+    storeBackend: storeAdapter.mode,
+    storeLocation: storeAdapter.location,
+    durable: storeAdapter.durable,
+    requiredProductionEnv:
+      storeAdapter.mode === "postgres"
+        ? ["BLISS_RELAY_STORE_BACKEND=postgres", "BLISS_RELAY_DATABASE_URL", "BLISS_RELAY_SECRET", "BLISS_RELAY_TOKEN"]
+        : ["BLISS_RELAY_STORE_DIR=/var/data/bliss-relay", "BLISS_RELAY_SECRET", "BLISS_RELAY_TOKEN"],
+    mode: "next-hosted-aes-256-gcm-durable-relay"
   };
 }
 

@@ -14,6 +14,7 @@ import {
 import type { ClientApprovalDraft, CulturalChecklistDraft, DestinationDraft, VendorDraft, VenueDraft } from "@/lib/repository";
 import { DeleteRelayWorkspaceResult, DevicePairingResult, RevokeDeviceResult, SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
 import { buildInfo, shortCommit } from "@/lib/buildInfo";
+import type { ManagedAuthStatus } from "@/lib/server/managedAuth";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
 import {
   SortingState,
@@ -28,6 +29,7 @@ import {
 
 interface DashboardProps {
   state: AppState;
+  authStatus?: ManagedAuthStatus;
   onGuestTargetChange: (weddingId: string, nextTarget: number) => void;
   onTaskStatusChange: (taskId: string) => void;
   onSyncModeChange: (nextMode: AppState["settings"]["syncMode"]) => void;
@@ -105,6 +107,7 @@ type EditDraft = Record<string, string>;
 
 export default function Dashboard({
   state,
+  authStatus,
   onGuestTargetChange,
   onTaskStatusChange,
   onSyncModeChange,
@@ -609,6 +612,9 @@ export default function Dashboard({
     autoResetAll: false
   });
   const visibleTaskRows = table.getRowModel().rows;
+  const authProviderLabel = authStatus?.providerLabel ?? "Loading auth";
+  const authReadiness = authStatus?.productionReady ? "Production auth ready" : "Local auth / setup required";
+  const authMissing = authStatus?.missing?.length ? authStatus.missing.join(", ") : "";
 
   return (
     <main className="app-shell dashboard-shell">
@@ -645,6 +651,9 @@ export default function Dashboard({
             </a>
           </div>
           <div className="dashboard-meta-row">
+            <span className={authStatus?.productionReady ? "sync-chip ready-chip" : "sync-chip warning-chip"}>
+              {authReadiness}
+            </span>
             <span className={statusClass(`Mode ${state.settings.syncMode}`)}>
               {state.settings.syncMode.replace("_", " ")}
             </span>
@@ -659,6 +668,30 @@ export default function Dashboard({
       </header>
 
       <ConnectivityBanner />
+
+      <section className="panel card auth-panel" aria-label="Managed account authentication">
+        <div>
+          <p className="kicker">Account access</p>
+          <h3>{authProviderLabel}</h3>
+          <p className="note">
+            {authStatus?.session
+              ? `${authStatus.session.userName} · ${authStatus.session.email} · ${authStatus.session.role}`
+              : "Checking current session."}
+          </p>
+        </div>
+        <div className="auth-actions">
+          {authStatus?.configured ? (
+            <a className="btn btn-soft" href={authStatus.loginUrl}>
+              Sign in with provider
+            </a>
+          ) : (
+            <span className="pill blocked">Missing {authMissing || "provider config"}</span>
+          )}
+          <a className="btn btn-ghost" href={authStatus?.logoutUrl ?? "/api/auth/logout"}>
+            Sign out
+          </a>
+        </div>
+      </section>
 
       <section className="controls panel card">
         <label className="wedding-picker">

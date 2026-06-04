@@ -49,6 +49,9 @@
    - [ ] `BLISS_RELAY_SECRET=dev-secret BLISS_RELAY_TOKEN=dev-token npm run sync:relay:prototype` starts locally.
    - [ ] Relay smoke validates `/health`, device pairing, `/sync/push`, `/sync/pull`, and delete-cloud-data.
    - [ ] Hosted Next relay routes validate `/api/sync/health`, pairing, push, pull, device revocation, and delete-cloud-data.
+   - [ ] Render has `BLISS_RELAY_STORE_DIR=/var/data/bliss-relay` with a persistent disk, or `BLISS_RELAY_STORE_BACKEND=postgres` with `BLISS_RELAY_DATABASE_URL`.
+   - [ ] Render has `BLISS_RELAY_SECRET` and `BLISS_RELAY_TOKEN` set.
+   - [ ] Managed auth provider env is set: `BLISS_AUTH_PROVIDER`, `BLISS_AUTH_CLIENT_ID`, `BLISS_AUTH_CLIENT_SECRET`, `BLISS_AUTH_SESSION_SECRET`, `BLISS_PUBLIC_APP_URL`.
    - [ ] Encrypted package format approved before relay API work begins.
    - [ ] Device pairing, revocation, retention, conflict review, and delete-cloud-data flows are scoped.
 

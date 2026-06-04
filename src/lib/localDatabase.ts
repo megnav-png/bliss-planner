@@ -17,6 +17,13 @@ function openDb(): Promise<IDBDatabase | null> {
   if (!canUseIndexedDb()) return Promise.resolve(null);
 
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: IDBDatabase | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+    const timeout = window.setTimeout(() => finish(null), 700);
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -24,9 +31,18 @@ function openDb(): Promise<IDBDatabase | null> {
         db.createObjectStore(STORE_NAME, { keyPath: "key" });
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
-    request.onblocked = () => resolve(null);
+    request.onsuccess = () => {
+      window.clearTimeout(timeout);
+      finish(request.result);
+    };
+    request.onerror = () => {
+      window.clearTimeout(timeout);
+      finish(null);
+    };
+    request.onblocked = () => {
+      window.clearTimeout(timeout);
+      finish(null);
+    };
   });
 }
 

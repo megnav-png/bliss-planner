@@ -1037,6 +1037,17 @@ button:disabled {
   color: var(--teal-deep);
 }
 
+.ready-chip {
+  background: #e9f7fb;
+  border-color: #b8e2ed;
+}
+
+.warning-chip {
+  background: #fff2e2;
+  border-color: #f4d0a7;
+  color: var(--gold-deep);
+}
+
 .deploy-chip {
   border: 1px solid rgba(24, 73, 67, 0.24);
   border-radius: 999px;
@@ -1279,6 +1290,25 @@ button:disabled {
   padding-bottom: 32px;
 }
 
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.auth-panel h3 {
+  color: var(--teal-deep);
+}
+
+.auth-actions,
+.portal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
 .portal-hero {
   display: flex;
   align-items: flex-start;
@@ -1306,6 +1336,13 @@ button:disabled {
   padding: 10px 12px;
 }
 
+.portal-row.compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .portal-row p {
   margin: 5px 0;
 }
@@ -1321,6 +1358,67 @@ button:disabled {
   border-radius: var(--radius);
   background: #fffaf4;
   padding: 12px;
+}
+
+.portal-action-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.portal-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.portal-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fffaf4;
+  padding: 10px 12px;
+}
+
+.portal-step span {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--teal-deep);
+  color: #fff;
+  font-weight: 800;
+}
+
+.portal-form {
+  display: grid;
+  gap: 12px;
+}
+
+.portal-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--teal-deep);
+  font-weight: 800;
+}
+
+.portal-form select,
+.portal-form textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fffaf4;
+  color: var(--text);
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.portal-form textarea {
+  min-height: 96px;
+  resize: vertical;
 }
 
 .small-metric {
@@ -1369,6 +1467,7 @@ button:disabled {
   .dashboard-top,
   .manual-hero,
   .portal-hero,
+  .auth-panel,
   .onboarding-hero,
   .controls,
   .top-stats,
