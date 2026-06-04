@@ -14,7 +14,11 @@ function env(name: string) {
 }
 
 function fileStoreDir() {
-  return env("BLISS_FILE_STORE_DIR") || env("BLISS_OBJECT_STORAGE_LOCAL_DIR") || "/tmp/bliss-planner-files";
+  return (
+    env("BLISS_FILE_STORE_DIR") ||
+    env("BLISS_OBJECT_STORAGE_LOCAL_DIR") ||
+    (env("RENDER") ? "/var/data/bliss-relay/files" : "/tmp/bliss-planner-files")
+  );
 }
 
 function safeFileName(value: string) {
