@@ -40,7 +40,8 @@ export function useCompleteOnboarding() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: OnboardingPayload) => completeOnboarding(payload),
-    onSuccess: () => {
+    onSuccess: (nextState) => {
+      queryClient.setQueryData(plannerQueryKeys.state(), nextState);
       void queryClient.invalidateQueries({ queryKey: plannerQueryKeys.state() });
       void queryClient.invalidateQueries({ queryKey: plannerQueryKeys.sync.diagnostics() });
     }

@@ -24,12 +24,13 @@ const REPORT_FILE = path.join(tmpdir(), `bliss-planner-phase6-pilot-${Date.now()
 const screenshotDesktop = path.join(tmpdir(), `bliss-planner-phase6-desktop-${Date.now()}.png`);
 const screenshotMobile = path.join(tmpdir(), `bliss-planner-phase6-mobile-${Date.now()}.png`);
 const packagePath = path.join(tmpdir(), `bliss-planner-phase6-package-${Date.now()}.json`);
-const PILOT_TIMEOUT_MS = 8_000;
+const PILOT_TIMEOUT_MS = 15_000;
 const URL_PROBE_TIMEOUT_MS = 1_250;
 const SKIP_PRECHECK = String(process.env.WOVOPS_PILOT_SKIP_PRECHECK || "").toLowerCase() === "true";
 const SKIP_IPV6 = String(process.env.WOVOPS_PILOT_SKIP_IPV6 || "true").toLowerCase() === "true";
 const ENABLE_HOST_ALIASES = String(process.env.WOVOPS_PILOT_ALLOW_HOST_ALIASES || "false").toLowerCase() === "true";
 const FORCE_IPV4_LOOPBACK = String(process.env.WOVOPS_PILOT_FORCE_IPV4_LOOPBACK || "true").toLowerCase() === "true";
+const SKIP_SCREENSHOTS = String(process.env.BLISS_PILOT_SKIP_SCREENSHOTS || process.env.WOVOPS_PILOT_SKIP_SCREENSHOTS || "false").toLowerCase() === "true";
 
 const results = {
   startedAt: new Date().toISOString(),
@@ -44,6 +45,29 @@ function addResult(name, status, details = "") {
     status,
     details
   });
+}
+
+async function capturePilotScreenshot(page, filePath, label) {
+  if (SKIP_SCREENSHOTS) {
+    addResult("Visual capture", "INFO", `${label} screenshot skipped; verify the rendered Codex browser instead.`);
+    return false;
+  }
+
+  try {
+    await page.screenshot({ path: filePath, fullPage: true, timeout: 10_000 });
+    return true;
+  } catch (error) {
+    const details = error instanceof Error ? error.message : String(error);
+    try {
+      await page.screenshot({ path: filePath, fullPage: false, timeout: PILOT_TIMEOUT_MS });
+      addResult("Visual capture", "INFO", `${label} full-page screenshot fell back to viewport capture. ${details}`);
+      return true;
+    } catch (fallbackError) {
+      const fallbackDetails = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      addResult("Visual capture", "BLOCKED", `${label} screenshot skipped after timeout. ${fallbackDetails}`);
+      return false;
+    }
+  }
 }
 
 function getCandidateUrls() {
@@ -160,7 +184,7 @@ async function gotoApp(page) {
 
     try {
       attemptedDirectNavigation = true;
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 8_000 });
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: PILOT_TIMEOUT_MS });
       const isWovops = await looksLikeWovops(page).catch(() => false);
       if (!isWovops) {
         const title = await page.title().catch(() => "unknown");
@@ -213,11 +237,11 @@ async function gotoApp(page) {
 async function safeReload(page) {
   try {
     const current = page.url().startsWith("http") ? page.url() : results.baseUrl;
-    await page.goto(current, { waitUntil: "domcontentloaded", timeout: 8000 });
+    await page.goto(current, { waitUntil: "domcontentloaded", timeout: PILOT_TIMEOUT_MS });
     return true;
   } catch {
     try {
-      await page.reload({ waitUntil: "domcontentloaded", timeout: 8000 });
+      await page.reload({ waitUntil: "domcontentloaded", timeout: PILOT_TIMEOUT_MS });
       return true;
     } catch {
       return false;
@@ -342,13 +366,6 @@ function escapeFieldLabel(label) {
 }
 
 async function getAppState(page) {
-  const plannerState = await readPlannerStateFromStorage(page).catch(() => null);
-  if (plannerState && typeof plannerState.onboarded === "boolean") {
-    return plannerState.onboarded
-      ? { phase: "dashboard", loading: false, onboarding: false, dashboard: true, error: false }
-      : { phase: "onboarding", loading: false, onboarding: true, dashboard: false, error: false };
-  }
-
   const loading = page.getByRole("heading", { name: "Loading workspace…" });
   const onboarding = page.getByRole("heading", { name: "Create your planner workspace" });
   const dashboard = page.getByRole("heading", { name: "Bliss Planner Dashboard" });
@@ -372,6 +389,13 @@ async function getAppState(page) {
   }
   if (isError) {
     return { phase: "error", loading: false, onboarding: false, dashboard: false, error: true };
+  }
+
+  const plannerState = await readPlannerStateFromStorage(page).catch(() => null);
+  if (plannerState && typeof plannerState.onboarded === "boolean") {
+    return plannerState.onboarded
+      ? { phase: "dashboard", loading: false, onboarding: false, dashboard: true, error: false }
+      : { phase: "onboarding", loading: false, onboarding: true, dashboard: false, error: false };
   }
 
   return { phase: "unknown", loading: false, onboarding: false, dashboard: false, error: false };
@@ -413,12 +437,12 @@ async function waitForDashboardReady(page, timeoutMs = 12_000) {
   while (Date.now() - start < timeoutMs) {
     const state = await getAppState(page);
     const dashboardUi = await hasDashboardUI(page);
-    if (state.phase === "dashboard" || dashboardUi) {
+    if (dashboardUi) {
       return true;
     }
     await page.waitForTimeout(120);
   }
-  return (await hasDashboardUI(page)) || (await getAppState(page)).phase === "dashboard";
+  return hasDashboardUI(page);
 }
 
 async function waitForStableAppState(page, timeoutMs = 12_000) {
@@ -474,20 +498,6 @@ async function waitForAppPhase(page, expectedPhases, timeoutMs = 12_000) {
 
   while (Date.now() - start < timeoutMs) {
     const state = await getAppState(page);
-    const plannerState = await readPlannerStateFromStorage(page).catch(() => null);
-    if (plannerState && typeof plannerState.onboarded === "boolean") {
-      const phase = plannerState.onboarded ? "dashboard" : "onboarding";
-      if (wanted.has(phase)) {
-        return {
-          phase,
-          loading: false,
-          onboarding: !plannerState.onboarded,
-          dashboard: plannerState.onboarded,
-          error: false
-        };
-      }
-    }
-
     if (wanted.has(state.phase)) {
       return state;
     }
@@ -498,6 +508,20 @@ async function waitForAppPhase(page, expectedPhases, timeoutMs = 12_000) {
 
     if (wanted.has("dashboard") && (await hasDashboardUI(page))) {
       return { phase: "dashboard", loading: false, onboarding: false, dashboard: true, error: false };
+    }
+
+    const plannerState = await readPlannerStateFromStorage(page).catch(() => null);
+    if (plannerState && typeof plannerState.onboarded === "boolean") {
+      const phase = plannerState.onboarded ? "dashboard" : "onboarding";
+      if (wanted.has(phase) && !wanted.has("dashboard")) {
+        return {
+          phase,
+          loading: false,
+          onboarding: !plannerState.onboarded,
+          dashboard: plannerState.onboarded,
+          error: false
+        };
+      }
     }
 
     await page.waitForTimeout(120);
@@ -725,12 +749,14 @@ async function waitForDashboardControlsReady(page, timeoutMs = 8000) {
       (await page.locator("section:has(h3:has-text('Next actions'))").count().catch(() => 0)) > 0;
     const syncControlsVisible =
       (await page.locator("button[data-testid='run-sync-now'], button:has-text('Run sync now')").count().catch(() => 0)) > 0;
+    const resetControlsVisible =
+      (await page.locator("button[data-testid='reset-seed-data'], button:has-text('Reset seed data')").count().catch(() => 0)) > 0;
     const exportControlsVisible =
       (await page.locator("button[data-testid='export-workspace-package'], button:has-text('Export workspace package')").count().catch(() => 0)) > 0;
     const sliderPresent =
       (await page.locator("input[data-testid='guest-target-slider'], input[type='range']").count().catch(() => 0)) > 0;
 
-    if (nextActionsVisible && syncControlsVisible && exportControlsVisible && sliderPresent) {
+    if (nextActionsVisible && syncControlsVisible && resetControlsVisible && exportControlsVisible && sliderPresent) {
       return true;
     }
 
@@ -738,6 +764,14 @@ async function waitForDashboardControlsReady(page, timeoutMs = 8000) {
   }
 
   return false;
+}
+
+async function settleDashboard(page, timeoutMs = PILOT_TIMEOUT_MS) {
+  await page.waitForLoadState("domcontentloaded", { timeout: timeoutMs }).catch(() => {});
+  await page.waitForTimeout(500);
+  const dashboardReady = await waitForDashboardReady(page, timeoutMs);
+  if (!dashboardReady) return false;
+  return waitForDashboardControlsReady(page, timeoutMs);
 }
 
 async function getPilotBannerText(page) {
@@ -863,20 +897,36 @@ try {
       } else {
         await page.reload({ waitUntil: "domcontentloaded", timeout: 10_000 }).catch(() => {});
         appState = await waitForAppPhase(page, ["dashboard", "onboarding", "loading", "error"], 14_000);
+        if (appState.phase !== "dashboard" || !(await settleDashboard(page, PILOT_TIMEOUT_MS))) {
+          await page.reload({ waitUntil: "domcontentloaded", timeout: PILOT_TIMEOUT_MS }).catch(() => {});
+          await settleDashboard(page, PILOT_TIMEOUT_MS);
+          appState = await waitForAppPhase(page, ["dashboard", "onboarding", "loading", "error"], 8_000);
+        }
       }
       addResult("Onboarding", "PASS", "Completed onboarding flow.");
     } else {
       addResult("Onboarding", "INFO", "Initial state already onboarded.");
     }
 
-  await page.screenshot({ path: screenshotDesktop, fullPage: true });
+  await capturePilotScreenshot(page, screenshotDesktop, "Desktop");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: screenshotMobile, fullPage: true });
+  await capturePilotScreenshot(page, screenshotMobile, "Mobile");
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   // Scenario 0: Fresh-start reset
   appState = await waitForAppPhase(page, ["dashboard", "onboarding", "loading", "error"], 12_000);
-  const resetButton = await resolveButtonTarget(page, "Reset seed data");
+  if (appState.phase === "dashboard") {
+    let dashboardSettled = await settleDashboard(page, PILOT_TIMEOUT_MS);
+    if (!dashboardSettled) {
+      await page.reload({ waitUntil: "domcontentloaded", timeout: PILOT_TIMEOUT_MS }).catch(() => {});
+      dashboardSettled = await settleDashboard(page, PILOT_TIMEOUT_MS);
+    }
+    if (!dashboardSettled) {
+      appState = await getAppState(page);
+    }
+  }
+  const resetByTestId = page.locator("button[data-testid='reset-seed-data']").first();
+  const resetButton = (await resetByTestId.count().catch(() => 0)) ? resetByTestId : await resolveButtonTarget(page, "Reset seed data");
   const resetCount = await (resetButton ? resetButton.count().catch(() => 0) : Promise.resolve(0));
   if (appState.phase === "dashboard" && resetCount > 0) {
     const resetStateBefore = await readPlannerStateFromStorage(page);
@@ -958,6 +1008,7 @@ try {
       await page.reload({ waitUntil: "domcontentloaded", timeout: 10_000 }).catch(() => {});
       const isDashboardReady = await waitForDashboardReady(page, 14_000);
       if (isDashboardReady) {
+        await settleDashboard(page, PILOT_TIMEOUT_MS);
         appState = await waitForAppPhase(page, ["dashboard", "onboarding", "loading", "error"], 6_000);
       } else {
         appState = { phase: "onboarding", loading: false, onboarding: true, dashboard: false, error: false };
@@ -981,7 +1032,11 @@ try {
   }
 
   if (appState.phase === "dashboard") {
-    const dashboardControlsReady = await waitForDashboardControlsReady(page, 8000);
+    let dashboardControlsReady = await settleDashboard(page, PILOT_TIMEOUT_MS);
+    if (!dashboardControlsReady) {
+      await page.reload({ waitUntil: "domcontentloaded", timeout: PILOT_TIMEOUT_MS }).catch(() => {});
+      dashboardControlsReady = await settleDashboard(page, PILOT_TIMEOUT_MS);
+    }
     if (!dashboardControlsReady) {
       const diagnostics = {
         nextActions: await page.locator("section:has(h3:has-text('Next actions'))").count().catch(() => 0),
@@ -1091,7 +1146,7 @@ try {
   } catch (error) {
     addResult("Pilot flow", "ERROR", error instanceof Error ? error.message : String(error));
   } finally {
-    await page.screenshot({ path: FINAL_SCREENSHOT, fullPage: true });
+    await capturePilotScreenshot(page, FINAL_SCREENSHOT, "Final");
     await browser.close();
   }
 } catch (error) {

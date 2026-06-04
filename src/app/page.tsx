@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Dashboard from "@/components/Dashboard";
 import OnboardingWizard from "@/components/OnboardingWizard";
 import {
@@ -21,6 +22,7 @@ import {
 
 export default function HomePage() {
   const { data: state, isLoading, isError, refetch } = usePlannerState();
+  const [localStateOverride, setLocalStateOverride] = useState<typeof state | null>(null);
   const completeOnboardingMutation = useCompleteOnboarding();
   const toggleTaskMutation = useToggleTask();
   const updateGuestTargetMutation = useUpdateGuestTarget();
@@ -58,13 +60,21 @@ export default function HomePage() {
     );
   }
 
-  if (!state.onboarded) {
+  const plannerState = localStateOverride ?? state;
+
+  if (!plannerState.onboarded) {
     return (
       <OnboardingWizard
-        seedProfile={state.profile}
-        seedSettings={state.settings}
+        seedProfile={plannerState.profile}
+        seedSettings={plannerState.settings}
         onComplete={(payload) => {
-          void completeOnboardingMutation.mutateAsync(payload);
+          void completeOnboardingMutation
+            .mutateAsync(payload)
+            .then((nextState) => {
+              setLocalStateOverride(nextState);
+              return refetch();
+            })
+            .then(() => setLocalStateOverride(null));
         }}
       />
     );
@@ -72,8 +82,8 @@ export default function HomePage() {
 
   return (
     <Dashboard
-      state={state}
-      activeWeddingId={state.activeWeddingId}
+      state={plannerState}
+      activeWeddingId={plannerState.activeWeddingId}
       syncDiagnostics={syncDiagnosticsQuery.data}
       syncSummary={runSyncMutation.data}
       onGuestTargetChange={(weddingId, guestTarget) => {
@@ -110,6 +120,7 @@ export default function HomePage() {
         void clearSyncMutation.mutateAsync();
       }}
       onResetWorkspace={() => {
+        setLocalStateOverride(null);
         void resetPlannerStateMutation.mutateAsync();
       }}
       syncError={
