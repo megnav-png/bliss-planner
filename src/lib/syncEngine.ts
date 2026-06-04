@@ -99,6 +99,14 @@ export interface DeleteRelayWorkspaceResult {
   error?: string;
 }
 
+export interface RevokeDeviceResult {
+  ok: boolean;
+  workspaceId?: string;
+  deviceId?: string;
+  revoked?: boolean;
+  error?: string;
+}
+
 interface SyncPackageFile {
   schema: "wovops-v1";
   exportedAt: string;
@@ -829,5 +837,34 @@ export async function deleteRelayWorkspace(): Promise<DeleteRelayWorkspaceResult
     return payload;
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Could not delete cloud relay data." };
+  }
+}
+
+export async function revokeCurrentDevice(): Promise<RevokeDeviceResult> {
+  const syncStore = readSyncStore();
+  if (!syncStore.endpoint) {
+    return { ok: false, error: "No sync endpoint configured." };
+  }
+
+  try {
+    const endpoint = syncStore.endpoint.replace(/\/$/, "");
+    const response = await fetch(`${endpoint}/devices/revoke`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        workspaceId: syncWorkspaceId(syncStore),
+        deviceId: syncStore.deviceId
+      })
+    });
+    const payload = (await response.json().catch(() => null)) as RevokeDeviceResult | null;
+    if (!response.ok || !payload?.ok) {
+      return { ok: false, error: payload?.error || `Revoke request failed (${response.status}).` };
+    }
+    syncStore.syncStatus = "idle";
+    syncStore.lastSyncError = "This device has been revoked from the relay.";
+    saveSyncStore(syncStore);
+    return payload;
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not revoke device." };
   }
 }

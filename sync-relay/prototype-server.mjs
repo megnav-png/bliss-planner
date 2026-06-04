@@ -249,6 +249,21 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "POST" && url.pathname === "/devices/revoke") {
+      const payload = await readBody(req);
+      const workspaceId = payload.workspaceId || DEFAULT_WORKSPACE;
+      const space = workspace(workspaceId);
+      const deviceId = payload.deviceId || "";
+      if (!space.devices[deviceId]) {
+        send(res, 404, { ok: false, error: "Device not found." });
+        return;
+      }
+      space.devices[deviceId].revokedAt = new Date().toISOString();
+      saveStore();
+      send(res, 200, { ok: true, workspaceId, deviceId, revoked: true });
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/sync/pull") {
       const workspaceId = url.searchParams.get("workspaceId") || DEFAULT_WORKSPACE;
       const since = Number(url.searchParams.get("since") || 0);

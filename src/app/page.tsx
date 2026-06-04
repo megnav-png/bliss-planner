@@ -21,6 +21,7 @@ import {
   useDeleteVenue,
   useDeleteRelayWorkspace,
   useResetPlannerState,
+  useRevokeCurrentDevice,
   useStartDevicePairing,
   useSyncDiagnostics,
   useToggleTask,
@@ -49,6 +50,7 @@ export default function HomePage() {
   const clearSyncMutation = useClearPlannerSyncState();
   const startDevicePairingMutation = useStartDevicePairing();
   const deleteRelayWorkspaceMutation = useDeleteRelayWorkspace();
+  const revokeCurrentDeviceMutation = useRevokeCurrentDevice();
   const resetPlannerStateMutation = useResetPlannerState();
   const upsertVendorMutation = useUpsertVendor();
   const deleteVendorMutation = useDeleteVendor();
@@ -149,6 +151,9 @@ export default function HomePage() {
       onDeleteRelayWorkspace={() => deleteRelayWorkspaceMutation.mutateAsync()}
       deleteRelayResult={deleteRelayWorkspaceMutation.data}
       deleteRelayError={deleteRelayWorkspaceMutation.error}
+      onRevokeCurrentDevice={() => revokeCurrentDeviceMutation.mutateAsync()}
+      revokeDeviceResult={revokeCurrentDeviceMutation.data}
+      revokeDeviceError={revokeCurrentDeviceMutation.error}
       onResetWorkspace={() => {
         setLocalStateOverride(null);
         void resetPlannerStateMutation.mutateAsync();

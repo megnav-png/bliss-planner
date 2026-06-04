@@ -58,6 +58,10 @@ const push = await request("/sync/push", {
   })
 });
 const pull = await request(`/sync/pull?workspaceId=${workspaceId}&since=0&deviceId=device-b`);
+const revoked = await request("/devices/revoke", {
+  method: "POST",
+  body: JSON.stringify({ workspaceId, deviceId: "device-b" })
+});
 const deleted = await request(`/sync/workspace?workspaceId=${workspaceId}`, { method: "DELETE" });
 
 const report = {
@@ -68,10 +72,11 @@ const report = {
   pairClaim,
   push,
   pulledEventCount: pull.events.length,
+  revoked,
   deleted
 };
 
-if (!pairClaim.ok || push.acceptedIds.length !== 1 || pull.events.length !== 1 || !deleted.deleted) {
+if (!pairClaim.ok || push.acceptedIds.length !== 1 || pull.events.length !== 1 || !revoked.revoked || !deleted.deleted) {
   throw new Error(`Relay smoke failed: ${JSON.stringify(report, null, 2)}`);
 }
 

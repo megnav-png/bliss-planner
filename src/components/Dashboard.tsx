@@ -12,7 +12,7 @@ import {
   VenueStatus
 } from "@/lib/types";
 import type { ClientApprovalDraft, CulturalChecklistDraft, DestinationDraft, VendorDraft, VenueDraft } from "@/lib/repository";
-import { DeleteRelayWorkspaceResult, DevicePairingResult, SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
+import { DeleteRelayWorkspaceResult, DevicePairingResult, RevokeDeviceResult, SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
 import { buildInfo, shortCommit } from "@/lib/buildInfo";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
 import {
@@ -48,6 +48,9 @@ interface DashboardProps {
   onDeleteRelayWorkspace: () => Promise<DeleteRelayWorkspaceResult>;
   deleteRelayResult?: DeleteRelayWorkspaceResult;
   deleteRelayError?: unknown;
+  onRevokeCurrentDevice: () => Promise<RevokeDeviceResult>;
+  revokeDeviceResult?: RevokeDeviceResult;
+  revokeDeviceError?: unknown;
   onResetWorkspace: () => void;
   onUpsertVendor: (draft: VendorDraft) => void;
   onDeleteVendor: (id: string) => void;
@@ -122,6 +125,9 @@ export default function Dashboard({
   onDeleteRelayWorkspace,
   deleteRelayResult,
   deleteRelayError,
+  onRevokeCurrentDevice,
+  revokeDeviceResult,
+  revokeDeviceError,
   onResetWorkspace,
   onUpsertVendor,
   onDeleteVendor,
@@ -269,7 +275,9 @@ export default function Dashboard({
       ? pairingError.message
       : deleteRelayError instanceof Error
         ? deleteRelayError.message
-        : pairingResult?.error || deleteRelayResult?.error || "";
+        : revokeDeviceError instanceof Error
+          ? revokeDeviceError.message
+          : pairingResult?.error || deleteRelayResult?.error || revokeDeviceResult?.error || "";
   const productHome = "/";
   const marketingHome = "https://www.playoramusic.com";
 
@@ -514,6 +522,14 @@ export default function Dashboard({
     setPackageStatus(result.deleted ? "Cloud relay data deleted for this workspace." : "No cloud relay workspace data was found.");
   }
 
+  async function handleRevokeCurrentDevice() {
+    if (!window.confirm("Revoke this device from the configured sync relay? You can keep local data, but future relay sync from this device may be rejected.")) {
+      return;
+    }
+    const result = await onRevokeCurrentDevice();
+    setPackageStatus(result.ok ? "This device was revoked from the relay." : result.error ?? "Could not revoke this device.");
+  }
+
   const columns = useMemo<ColumnDef<(typeof selectedTasks)[number], unknown>[]>(
     () => [
       {
@@ -612,6 +628,12 @@ export default function Dashboard({
             </a>
             <a href="/manual" className="btn btn-primary">
               Instruction manual
+            </a>
+            <a href="/client" className="btn btn-soft">
+              Client portal
+            </a>
+            <a href="/vendor" className="btn btn-soft">
+              Vendor portal
             </a>
             <a
               href={marketingHome}
@@ -789,6 +811,9 @@ export default function Dashboard({
                 <button className="btn btn-danger" data-testid="delete-cloud-relay-data" onClick={() => void handleDeleteRelayWorkspace()}>
                   Delete cloud data
                 </button>
+                <button className="btn btn-ghost" data-testid="revoke-current-device" onClick={() => void handleRevokeCurrentDevice()}>
+                  Revoke device
+                </button>
               </div>
               {pairingResult?.pairingCode ? (
                 <p className="note">
@@ -800,6 +825,7 @@ export default function Dashboard({
                   {deleteRelayResult.deleted ? "Cloud relay workspace deleted." : "No cloud relay data found."}
                 </p>
               ) : null}
+              {revokeDeviceResult?.ok ? <p className="note">Current device revoked from relay.</p> : null}
             </label>
 
             <label className="sync-control-group">
@@ -820,6 +846,43 @@ export default function Dashboard({
         </div>
 
         {packageStatus ? <p className="note">{packageStatus}</p> : null}
+      </section>
+
+      <section className="panel card device-conflict-panel" aria-label="Device and conflict review">
+        <div className="section-header">
+          <div>
+            <h3>Device and conflict review</h3>
+            <p className="note">Keep trusted device access and sync conflicts visible before client-facing releases.</p>
+          </div>
+          <span className="sync-chip">{syncSummary?.conflicts.length ?? 0} conflicts</span>
+        </div>
+        <div className="device-grid">
+          <div className="sync-stat">
+            <strong>Current device</strong>
+            <p>{diagnosticSummary.deviceId}</p>
+          </div>
+          <div className="sync-stat">
+            <strong>Workspace identity</strong>
+            <p>{diagnosticSummary.plannerId}</p>
+          </div>
+          <div className="sync-stat">
+            <strong>Relay endpoint</strong>
+            <p>{diagnosticSummary.endpoint}</p>
+          </div>
+        </div>
+        <div className="conflict-list">
+          {syncSummary?.conflicts.length ? (
+            syncSummary.conflicts.map((conflict) => (
+              <div key={`${conflict.entityKey}-${conflict.remoteRevision}`} className="conflict-row">
+                <strong>{conflict.entityKey}</strong>
+                <p>{conflict.note}</p>
+                <span className="pill blocked">local {conflict.localRevision} · remote {conflict.remoteRevision}</span>
+              </div>
+            ))
+          ) : (
+            <p className="note">No sync conflicts detected in the latest run.</p>
+          )}
+        </div>
       </section>
 
       <section className="grid four metrics-grid">

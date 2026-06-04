@@ -11,6 +11,9 @@ export type ClientApprovalState = "DRAFT" | "CLIENT_REVIEW" | "APPROVED" | "ESCA
 export type VendorCategory = "CATERING" | "DECOR" | "PHOTO_VIDEO" | "MUSIC" | "LOGISTICS" | "BEAUTY" | "OTHER";
 export type VendorStatus = "LEAD" | "QUOTED" | "CONTRACTED" | "PAID" | "AT_RISK";
 export type VenueStatus = "SHORTLISTED" | "HOLD" | "CONTRACTED" | "PERMIT_PENDING" | "READY";
+export type AccountRole = "OWNER" | "PLANNER" | "PRODUCTION" | "CLIENT" | "VENDOR" | "VIEWER";
+export type AccountStatus = "ACTIVE" | "INVITED" | "SUSPENDED";
+export type PortalAccess = "NONE" | "CLIENT_PORTAL" | "VENDOR_PORTAL" | "FULL_WORKSPACE";
 
 export interface PlannerSettings {
   baseCurrency: string;
@@ -33,6 +36,35 @@ export interface PlannerProfile {
   name: string;
   email: string;
   businessName: string;
+}
+
+export interface AccountUser {
+  id: string;
+  workspaceId: string;
+  name: string;
+  email: string;
+  role: AccountRole;
+  status: AccountStatus;
+  portalAccess: PortalAccess;
+  lastActiveAt?: string;
+}
+
+export interface WorkspaceAccount {
+  id: string;
+  name: string;
+  ownerUserId: string;
+  region: string;
+  dataResidency: string;
+  authProvider: "LOCAL" | "GOOGLE" | "OIDC";
+  createdAt: string;
+}
+
+export interface AuthSession {
+  userId: string;
+  workspaceId: string;
+  role: AccountRole;
+  issuedAt: string;
+  expiresAt: string;
 }
 
 export interface BudgetLine {
@@ -167,6 +199,9 @@ export interface Wedding {
 }
 
 export interface AppState {
+  workspace: WorkspaceAccount;
+  users: AccountUser[];
+  session: AuthSession;
   profile: PlannerProfile;
   settings: PlannerSettings;
   weddings: Wedding[];

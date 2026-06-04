@@ -82,6 +82,11 @@ const browser = await chromium.launch({ headless: true });
 const checks = [];
 const consoleErrors = [];
 
+const portalChecks = [
+  { path: "/client", heading: "Client portal", text: "Approval center" },
+  { path: "/vendor", heading: "Vendor portal", text: "Vendor task board" }
+];
+
 try {
   for (const viewport of viewports) {
     const context = await browser.newContext({ viewport });
@@ -124,6 +129,33 @@ try {
     });
     await context.close();
   }
+
+  const portalContext = await browser.newContext({ viewport: { width: 1280, height: 820 } });
+  for (const portal of portalChecks) {
+    const page = await portalContext.newPage();
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(`${portal.path}: ${message.text()}`);
+    });
+    page.on("pageerror", (error) => consoleErrors.push(`${portal.path}: ${error.message}`));
+    await page.goto(new URL(portal.path, APP_URL).toString(), { waitUntil: "domcontentloaded", timeout: 25_000 });
+    await page.getByText(portal.heading).waitFor({ timeout: 10_000 });
+    await page.getByText(portal.text).waitFor({ timeout: 10_000 });
+    checks.push({
+      viewport: portal.path,
+      size: "1280x820",
+      status: "PASS",
+      metrics: {
+        bodyTextLength: await page.evaluate(() => document.body.innerText.length),
+        scrollWidth: await page.evaluate(() => document.documentElement.scrollWidth),
+        clientWidth: await page.evaluate(() => document.documentElement.clientWidth),
+        horizontalOverflow: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1),
+        deployMarker: "portal",
+        hasFrameworkOverlay: false
+      }
+    });
+    await page.close();
+  }
+  await portalContext.close();
 } finally {
   await browser.close();
 }

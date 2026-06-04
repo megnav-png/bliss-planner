@@ -15,6 +15,8 @@ This phase introduces a desktop execution wrapper and formal release path.
   Builds with hardened runtime/notarization settings when Apple Developer credentials and signing identity are available.
 - **Windows packaging smoke** (`scripts/package-windows-smoke.mjs`)  
   Runs a cross-platform `electron-builder --win --dir` packaging check.
+- **Signed Windows installer preflight** (`scripts/package-windows-signed.mjs`)  
+  Builds a production Windows installer when a code-signing certificate is configured.
 - **Export profile** (`phase7/desktop-export-profile.json`)  
   Defines package IDs, output targets, icons, artifact names, and OS targets.
 - **Sync backend architecture** (`phase7/SYNC_BACKEND_ARCHITECTURE.md`)  
@@ -52,6 +54,10 @@ This phase introduces a desktop execution wrapper and formal release path.
   ```bash
   npm run phase7:desktop:package:win-smoke
   ```
+- Run signed Windows installer packaging:
+  ```bash
+  WIN_CSC_LINK=... WIN_CSC_KEY_PASSWORD=... npm run phase7:desktop:package:win-signed
+  ```
 - Run signed/notarized macOS packaging:
   ```bash
   APPLE_ID=... APPLE_APP_SPECIFIC_PASSWORD=... APPLE_TEAM_ID=... CSC_LINK=... CSC_KEY_PASSWORD=... npm run phase7:desktop:package:signed
@@ -63,4 +69,4 @@ This phase introduces a desktop execution wrapper and formal release path.
   npm run phase6:pilot:single
   ```
 - If packaging fails on the host, regenerate profile entries in `phase7/desktop-export-profile.json` and rerun packaging.
-- Local macOS packages are unsigned development artifacts. Production distribution still needs Apple Developer signing and notarization.
+- Local macOS and Windows smoke packages are development artifacts. Production distribution still needs Apple Developer signing/notarization and a Windows code-signing certificate.

@@ -27,6 +27,7 @@
     "phase7:desktop:smoke": "BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3090 BLISS_DESKTOP_SMOKE_TEST=true node scripts/run-desktop.mjs",
     "phase7:desktop:package": "node scripts/package-desktop.mjs",
     "phase7:desktop:package:signed": "node scripts/package-desktop-signed.mjs",
+    "phase7:desktop:package:win-signed": "node scripts/package-windows-signed.mjs",
     "phase7:desktop:package:win-smoke": "node scripts/package-windows-smoke.mjs"
   },
   "dependencies": {

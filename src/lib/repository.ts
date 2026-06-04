@@ -10,6 +10,8 @@ import {
   importSyncPackage as importSyncStatePackage,
   recordSyncEvent,
   runSync,
+  revokeCurrentDevice,
+  RevokeDeviceResult,
   setPlannerId,
   setSyncEndpoint,
   startDevicePairing,
@@ -93,6 +95,9 @@ function ensureState(value: AppState | null | undefined): AppState {
 
   return {
     ...value,
+    workspace: value.workspace ?? seedState.workspace,
+    users: value.users ?? seedState.users,
+    session: value.session ?? seedState.session,
     profile: value.profile,
     settings: value.settings,
     weddings: value.weddings ?? [],
@@ -526,6 +531,10 @@ export async function startPlannerDevicePairing(): Promise<DevicePairingResult> 
 
 export async function deletePlannerRelayWorkspace(): Promise<DeleteRelayWorkspaceResult> {
   return deleteRelayWorkspace();
+}
+
+export async function revokePlannerCurrentDevice(): Promise<RevokeDeviceResult> {
+  return revokeCurrentDevice();
 }
 
 export async function resetPlannerState(): Promise<AppState> {

@@ -14,6 +14,7 @@ import {
   OnboardingPayload,
   resetPlannerState,
   runPlannerSync,
+  revokePlannerCurrentDevice,
   setActiveWedding,
   setPlannerIdentity,
   setSyncEndpointUrl,
@@ -34,7 +35,7 @@ import {
   VenueDraft
 } from "./repository";
 import { AppState } from "./types";
-import type { DeleteRelayWorkspaceResult, DevicePairingResult, SyncDiagnostics, SyncRunSummary } from "./syncEngine";
+import type { DeleteRelayWorkspaceResult, DevicePairingResult, RevokeDeviceResult, SyncDiagnostics, SyncRunSummary } from "./syncEngine";
 
 export const plannerQueryKeys = {
   all: ["planner"] as const,
@@ -238,6 +239,16 @@ export function useDeleteRelayWorkspace() {
   return useMutation({
     mutationFn: () => deletePlannerRelayWorkspace(),
     onSuccess: (_result: DeleteRelayWorkspaceResult | DevicePairingResult) => {
+      void queryClient.invalidateQueries({ queryKey: plannerQueryKeys.sync.diagnostics() });
+    }
+  });
+}
+
+export function useRevokeCurrentDevice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => revokePlannerCurrentDevice(),
+    onSuccess: (_result: RevokeDeviceResult) => {
       void queryClient.invalidateQueries({ queryKey: plannerQueryKeys.sync.diagnostics() });
     }
   });

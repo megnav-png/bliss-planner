@@ -37,6 +37,7 @@
    - [ ] Add platform signing credentials.
    - [ ] `npm run phase7:desktop:package:signed` passes with Apple Developer ID credentials.
    - [ ] `npm run phase7:desktop:package:win-smoke` passes before Windows installer release.
+   - [ ] `npm run phase7:desktop:package:win-signed` passes with a Windows code-signing certificate.
    - [ ] Decide update strategy (manual distribution vs signed auto-update).
    - [ ] Capture release notes with:
      - version bump
@@ -47,8 +48,9 @@
    - [ ] `phase7/SYNC_BACKEND_ARCHITECTURE.md` reviewed.
    - [ ] `BLISS_RELAY_SECRET=dev-secret BLISS_RELAY_TOKEN=dev-token npm run sync:relay:prototype` starts locally.
    - [ ] Relay smoke validates `/health`, device pairing, `/sync/push`, `/sync/pull`, and delete-cloud-data.
+   - [ ] Hosted Next relay routes validate `/api/sync/health`, pairing, push, pull, device revocation, and delete-cloud-data.
    - [ ] Encrypted package format approved before relay API work begins.
-   - [ ] Device pairing, revocation, retention, and delete-cloud-data flows are scoped.
+   - [ ] Device pairing, revocation, retention, conflict review, and delete-cloud-data flows are scoped.
 
 ## Suggested release order
 1. `npm run phase6:pilot:deterministic`
@@ -57,7 +59,8 @@
 4. `npm run phase7:desktop:smoke`
 5. `npm run phase7:desktop:package`
 6. `npm run phase7:desktop:package:win-smoke`
-7. Install package artifact in a clean machine profile and run:
+7. `npm run phase7:desktop:package:win-signed` after Windows signing credentials are available.
+8. Install package artifact in a clean machine profile and run:
    - onboarding flow
    - reset + onboarding recheck
    - task interaction + guest target slider

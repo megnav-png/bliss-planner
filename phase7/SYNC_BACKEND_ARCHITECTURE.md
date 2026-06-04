@@ -16,6 +16,7 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
    - Object storage such as Cloudflare R2, Google Cloud Storage, or S3 for encrypted snapshot packages.
    - No plaintext wedding, guest, vendor, budget, cultural, or client data is stored server-side.
    - Prototype command: `BLISS_RELAY_SECRET=dev-secret BLISS_RELAY_TOKEN=dev-token npm run sync:relay:prototype`.
+   - Hosted route handlers are available under `/api/sync/*` and `/api/devices/*`; set `BLISS_RELAY_STORE_DIR` to a persistent disk path in production.
 
 3. **Identity and device continuity**
    - Planner account owns one or more workspaces.
@@ -56,4 +57,6 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 - Relay records persist to `BLISS_RELAY_STORE` or `/tmp/bliss-planner-sync-relay-store.json`.
 - `BLISS_RELAY_TOKEN` enables bearer-token or `x-bliss-relay-token` auth for all relay endpoints.
 - The dashboard exposes device pairing and delete-cloud-data controls once a relay endpoint is configured.
-- Production version still needs hosted auth, region-aware durable storage, token rotation, device revocation UI, and audit retention policy.
+- Production version now has a hosted route-handler relay, planner account seed model, pairing, revocation, conflict-review surface, and delete-cloud-data flow.
+- For durable production hosting, configure `BLISS_RELAY_STORE_DIR` to a persistent disk mount or replace the file store with PostgreSQL/object storage before paid release.
+- Production hardening still needs managed auth provider integration, region-aware storage selection, token rotation policy, and audit retention policy.

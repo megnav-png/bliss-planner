@@ -1,5 +1,7 @@
 import {
   AppState,
+  AccountUser,
+  AuthSession,
   BudgetLine,
   ClientApproval,
   CulturalChecklistItem,
@@ -10,6 +12,55 @@ import {
   Vendor,
   Venue
 } from "./types";
+
+const workspace = {
+  id: "workspace-playora-bliss",
+  name: "Playora Bliss Planner Studio",
+  ownerUserId: "user-owner",
+  region: "global",
+  dataResidency: "planner-selected",
+  authProvider: "LOCAL" as const,
+  createdAt: "2026-06-04T00:00:00.000Z"
+};
+
+const users: AccountUser[] = [
+  {
+    id: "user-owner",
+    workspaceId: workspace.id,
+    name: "Aster Bellamy",
+    email: "aster@blissplanner.test",
+    role: "OWNER",
+    status: "ACTIVE",
+    portalAccess: "FULL_WORKSPACE",
+    lastActiveAt: "2026-06-04T00:00:00.000Z"
+  },
+  {
+    id: "user-client",
+    workspaceId: workspace.id,
+    name: "Mika & Arjun",
+    email: "client@blissplanner.test",
+    role: "CLIENT",
+    status: "INVITED",
+    portalAccess: "CLIENT_PORTAL"
+  },
+  {
+    id: "user-vendor",
+    workspaceId: workspace.id,
+    name: "Kyo Table Collective",
+    email: "vendor@blissplanner.test",
+    role: "VENDOR",
+    status: "INVITED",
+    portalAccess: "VENDOR_PORTAL"
+  }
+];
+
+const session: AuthSession = {
+  userId: "user-owner",
+  workspaceId: workspace.id,
+  role: "OWNER",
+  issuedAt: "2026-06-04T00:00:00.000Z",
+  expiresAt: "2026-06-05T00:00:00.000Z"
+};
 
 const budgetLines: BudgetLine[] = [
   { id: "line-venue", category: "Venue", planned: 160000, actual: 96000 },
@@ -311,6 +362,9 @@ const marrakechCulture: CulturalChecklistItem[] = [
 ];
 
 export const seedState: AppState = {
+  workspace,
+  users,
+  session,
   profile: {
     name: "Aster Bellamy",
     email: "planner@blissplanner.example",
