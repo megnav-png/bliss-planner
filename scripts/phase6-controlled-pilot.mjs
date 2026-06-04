@@ -117,7 +117,7 @@ async function probeAppUrl(url) {
 }
 
 async function looksLikeWovops(page) {
-  const onboarding = page.getByRole("heading", { name: "Planner Setup" });
+  const onboarding = page.getByRole("heading", { name: "Create your planner workspace" });
   const dashboard = page.getByRole("heading", { name: "Bliss Planner Dashboard" });
   const loading = page.getByRole("heading", { name: "Loading workspace…" });
   const loadError = page.getByRole("heading", { name: "Could not load workspace" });
@@ -175,7 +175,7 @@ async function gotoApp(page) {
           .then((text) => (text ? text.slice(0, 150).replace(/\s+/g, " ").trim() : "none"))
           .catch(() => "none");
         const appearsToBeWovops =
-          /Planner Setup|Bliss Planner Dashboard|Loading workspace…|Create Planner Workspace|Planner Name/.test(bodyText);
+          /Create your planner workspace|Bliss Planner Dashboard|Loading workspace…|Create Planner Workspace|Planner Name/.test(bodyText);
 
         if (appearsToBeWovops) {
           results.baseUrl = url;
@@ -350,7 +350,7 @@ async function getAppState(page) {
   }
 
   const loading = page.getByRole("heading", { name: "Loading workspace…" });
-  const onboarding = page.getByRole("heading", { name: "Planner Setup" });
+  const onboarding = page.getByRole("heading", { name: "Create your planner workspace" });
   const dashboard = page.getByRole("heading", { name: "Bliss Planner Dashboard" });
   const error = page.getByRole("heading", { name: "Could not load workspace" });
   const dashboardShell = page.locator("main.dashboard-shell");
@@ -359,7 +359,8 @@ async function getAppState(page) {
   if (isLoading) {
     return { phase: "loading", loading: true, onboarding: false, dashboard: false, error: false };
   }
-  const isOnboarding = await onboarding.isVisible().catch(() => false);
+  const hasOnboardRoot = await page.locator("main.onboard").isVisible().catch(() => false);
+  const isOnboarding = (await onboarding.isVisible().catch(() => false)) || hasOnboardRoot;
   const isDashboard = (await dashboard.isVisible().catch(() => false)) || (await dashboardShell.isVisible().catch(() => false));
   const isError = await error.isVisible().catch(() => false);
 
@@ -377,11 +378,13 @@ async function getAppState(page) {
 }
 
 async function hasOnboardingUI(page) {
-  const heading = page.getByRole("heading", { name: "Planner Setup" });
+  const heading = page.getByRole("heading", { name: "Create your planner workspace" });
+  const onboardRoot = page.locator("main.onboard");
   const plannerName = page.locator("main.onboard label:has-text('Planner Name') input");
   const stepOneInput = page.locator("main.onboard input, main.onboard select, main.onboard textarea");
 
   const hasHeading = await heading.isVisible().catch(() => false);
+  const hasRoot = await onboardRoot.isVisible().catch(() => false);
   const hasPlannerNameByRole = await page
     .getByRole("textbox", { name: "Planner Name" })
     .isVisible()
@@ -389,7 +392,7 @@ async function hasOnboardingUI(page) {
   const hasPlannerNameByLabel = await plannerName.isVisible().catch(() => false);
   const hasAnyOnboardingField = (await stepOneInput.count().catch(() => 0)) > 0;
 
-  return hasHeading && (hasPlannerNameByRole || hasPlannerNameByLabel || hasAnyOnboardingField);
+  return (hasHeading || hasRoot) && (hasPlannerNameByRole || hasPlannerNameByLabel || hasAnyOnboardingField);
 }
 
 async function hasDashboardUI(page) {
