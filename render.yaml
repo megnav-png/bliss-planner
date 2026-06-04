@@ -40,13 +40,33 @@ services:
         sync: false
       - key: BLISS_EMAIL_FROM
         value: Bliss Planner <noreply@blissplanner.app>
+      - key: BLISS_EMAIL_PROVIDER
+        value: queued
+      - key: BLISS_EMAIL_WEBHOOK_URL
+        sync: false
+      - key: BLISS_EMAIL_WEBHOOK_TOKEN
+        sync: false
       - key: SENTRY_DSN
         sync: false
       - key: BLISS_RELAY_DATABASE_URL
         sync: false
+      - key: BLISS_FILE_STORE_DIR
+        value: /var/data/bliss-relay/files
       - key: BLISS_OBJECT_STORAGE_BUCKET
         sync: false
       - key: BLISS_OBJECT_STORAGE_REGION
+        sync: false
+      - key: BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT
+        sync: false
+      - key: BLISS_OBJECT_STORAGE_TOKEN
+        sync: false
+      - key: BLISS_ADMIN_EMAILS
+        sync: false
+      - key: BLISS_PLANNER_EMAILS
+        sync: false
+      - key: BLISS_PORTAL_CLIENT_EMAILS
+        sync: false
+      - key: BLISS_PORTAL_VENDOR_EMAILS
         sync: false
     disk:
       name: bliss-relay-data

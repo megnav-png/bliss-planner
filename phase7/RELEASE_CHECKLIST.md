@@ -55,7 +55,9 @@
    - [ ] `BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_RELAY_TOKEN=<token> npm run sync:relay:health` reports `durable: true`, `authRequired: true`, nonzero `auditLogCount`, and the expected token version.
    - [ ] `/admin` relay audit viewer loads with the real relay token.
    - [ ] Managed auth provider env is set: `BLISS_AUTH_PROVIDER`, `BLISS_AUTH_CLIENT_ID`, `BLISS_AUTH_CLIENT_SECRET`, `BLISS_AUTH_SESSION_SECRET`, `BLISS_PUBLIC_APP_URL`.
-   - [ ] Invite email provider env is set: `BLISS_RESEND_API_KEY`, `BLISS_EMAIL_FROM`.
+   - [ ] Role allowlists are set: `BLISS_ADMIN_EMAILS`, `BLISS_PLANNER_EMAILS`, `BLISS_PORTAL_CLIENT_EMAILS`, `BLISS_PORTAL_VENDOR_EMAILS`.
+   - [ ] File storage env is set: `BLISS_FILE_STORE_DIR`, or external object storage env `BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT` and token.
+   - [ ] Invite email provider env is set: `BLISS_EMAIL_PROVIDER`, `BLISS_EMAIL_FROM`, and either `BLISS_RESEND_API_KEY` or `BLISS_EMAIL_WEBHOOK_URL`.
    - [ ] Monitoring env is set: `SENTRY_DSN`, plus Render deploy alerts.
    - [ ] Paid-release gates in `phase7/PAID_RELEASE_HARDENING.md` are reviewed.
    - [ ] Encrypted package format approved before relay API work begins.

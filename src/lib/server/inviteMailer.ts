@@ -9,6 +9,18 @@ type InviteEmailPayload = {
 
 const FROM_EMAIL = process.env.BLISS_EMAIL_FROM || "Bliss Planner <noreply@blissplanner.app>";
 const RESEND_API_KEY = process.env.BLISS_RESEND_API_KEY || "";
+const EMAIL_PROVIDER = (process.env.BLISS_EMAIL_PROVIDER || (RESEND_API_KEY ? "resend" : "queued")).toLowerCase();
+const EMAIL_WEBHOOK_URL = process.env.BLISS_EMAIL_WEBHOOK_URL || "";
+const EMAIL_WEBHOOK_TOKEN = process.env.BLISS_EMAIL_WEBHOOK_TOKEN || "";
+
+export function inviteEmailHealth() {
+  return {
+    provider: EMAIL_PROVIDER,
+    from: FROM_EMAIL,
+    resendConfigured: Boolean(RESEND_API_KEY),
+    webhookConfigured: Boolean(EMAIL_WEBHOOK_URL)
+  };
+}
 
 export async function sendInviteEmail(payload: InviteEmailPayload) {
   const subject = `You're invited to ${payload.workspaceName} on Bliss Planner`;
@@ -20,12 +32,48 @@ export async function sendInviteEmail(payload: InviteEmailPayload) {
     `Open your invite: ${acceptUrl}`
   ].join("\n");
 
-  if (!RESEND_API_KEY) {
+  if (EMAIL_PROVIDER === "webhook" && EMAIL_WEBHOOK_URL) {
+    const response = await fetch(EMAIL_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(EMAIL_WEBHOOK_TOKEN ? { authorization: `Bearer ${EMAIL_WEBHOOK_TOKEN}` } : {})
+      },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to: payload.to,
+        subject,
+        text,
+        template: "team-invite",
+        data: { ...payload, acceptUrl }
+      })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return {
+        ok: false,
+        delivered: false,
+        provider: "webhook",
+        status: response.status,
+        error: body?.message || body?.error || "Invite email webhook rejected the message."
+      };
+    }
+    return {
+      ok: true,
+      delivered: true,
+      provider: "webhook",
+      id: body?.id,
+      to: payload.to,
+      subject
+    };
+  }
+
+  if (!RESEND_API_KEY || EMAIL_PROVIDER === "queued") {
     return {
       ok: true,
       delivered: false,
       provider: "queued",
-      message: "No BLISS_RESEND_API_KEY configured; invite was recorded locally and is ready for provider delivery.",
+      message: "No invite email provider configured; invite was recorded locally and is ready for provider delivery.",
       to: payload.to,
       subject
     };

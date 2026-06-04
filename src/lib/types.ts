@@ -35,6 +35,10 @@ export interface FileReference {
   name: string;
   kind: "CONTRACT" | "QUOTE" | "MOODBOARD" | "PERMIT" | "INVOICE" | "CLIENT_NOTE" | "OTHER";
   url?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  storageProvider?: "local-data-url" | "server-file" | "external-object";
+  storageKey?: string;
   addedAt: string;
 }
 

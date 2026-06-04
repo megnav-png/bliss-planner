@@ -22,6 +22,7 @@ export type ManagedAuthStatus = {
     email: string;
     portalAccess: PortalAccess;
   };
+  sessionSource: "cookie" | "local";
   productionReady: boolean;
 };
 
@@ -83,6 +84,44 @@ function requiredConfig() {
   );
 }
 
+function csvEnv(name: string) {
+  return env(name)
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isRole(value: string): value is AccountRole {
+  return ["OWNER", "PLANNER", "PRODUCTION", "CLIENT", "VENDOR", "VIEWER"].includes(value);
+}
+
+function roleProfile(email: string): Pick<AuthSession, "role"> & { portalAccess: PortalAccess } {
+  const normalized = email.toLowerCase();
+  if (csvEnv("BLISS_PORTAL_CLIENT_EMAILS").includes(normalized)) {
+    return { role: "CLIENT", portalAccess: "CLIENT_PORTAL" };
+  }
+  if (csvEnv("BLISS_PORTAL_VENDOR_EMAILS").includes(normalized)) {
+    return { role: "VENDOR", portalAccess: "VENDOR_PORTAL" };
+  }
+  if (csvEnv("BLISS_PRODUCTION_EMAILS").includes(normalized)) {
+    return { role: "PRODUCTION", portalAccess: "FULL_WORKSPACE" };
+  }
+  if (csvEnv("BLISS_ADMIN_EMAILS").includes(normalized) || csvEnv("BLISS_PLANNER_EMAILS").includes(normalized)) {
+    return { role: "OWNER", portalAccess: "FULL_WORKSPACE" };
+  }
+  const defaultRole = env("BLISS_AUTH_DEFAULT_ROLE").toUpperCase();
+  if (isRole(defaultRole)) {
+    return {
+      role: defaultRole,
+      portalAccess: defaultRole === "CLIENT" ? "CLIENT_PORTAL" : defaultRole === "VENDOR" ? "VENDOR_PORTAL" : defaultRole === "VIEWER" ? "NONE" : "FULL_WORKSPACE"
+    };
+  }
+  if (providerMode() !== "local") {
+    return { role: "VIEWER", portalAccess: "NONE" };
+  }
+  return { role: "OWNER", portalAccess: "FULL_WORKSPACE" };
+}
+
 function sign(value: string) {
   return createHmac("sha256", authSecret()).update(value).digest("base64url");
 }
@@ -129,13 +168,30 @@ export function managedAuthConfig() {
 export async function getManagedAuthStatus(): Promise<ManagedAuthStatus> {
   const config = managedAuthConfig();
   const cookieStore = await cookies();
-  const session = decodeSession(cookieStore.get(SESSION_COOKIE)?.value) ?? localSession();
+  const cookieSession = decodeSession(cookieStore.get(SESSION_COOKIE)?.value);
+  const session = cookieSession ?? localSession();
   return {
     ...config,
     loginUrl: "/api/auth/login",
     logoutUrl: "/api/auth/logout",
     session,
+    sessionSource: cookieSession ? "cookie" : "local",
     productionReady: config.configured && config.mode !== "local"
+  };
+}
+
+export async function requireManagedAccess(options: {
+  portalAccess?: PortalAccess[];
+  roles?: AccountRole[];
+}) {
+  const auth = await getManagedAuthStatus();
+  const requiresCookie = auth.productionReady && auth.sessionSource !== "cookie";
+  const portalAllowed = !options.portalAccess?.length || options.portalAccess.includes(auth.session.portalAccess);
+  const roleAllowed = !options.roles?.length || options.roles.includes(auth.session.role);
+  return {
+    auth,
+    allowed: !requiresCookie && portalAllowed && roleAllowed,
+    reason: requiresCookie ? "LOGIN_REQUIRED" : !portalAllowed ? "PORTAL_ACCESS_REQUIRED" : !roleAllowed ? "ROLE_REQUIRED" : ""
   };
 }
 
@@ -199,15 +255,16 @@ export async function completeManagedLogin(request: NextRequest) {
     return { redirectTo: "/?auth=domain_denied" };
   }
 
+  const mapped = roleProfile(profile.email || "");
   const session: ManagedAuthStatus["session"] = {
     userId: profile.sub || profile.email || "managed-user",
     workspaceId: seedState.workspace.id,
-    role: "OWNER" as AccountRole,
+    role: mapped.role,
     issuedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     userName: profile.name || profile.email || "Managed planner",
     email: profile.email || "planner@example.com",
-    portalAccess: "FULL_WORKSPACE"
+    portalAccess: mapped.portalAccess
   };
 
   cookieStore.set(SESSION_COOKIE, encodeSession(session), {

@@ -95,9 +95,27 @@ const checks = [];
 const consoleErrors = [];
 
 const portalChecks = [
-  { path: "/client", heading: "Client portal", text: "Client review flow" },
-  { path: "/vendor", heading: "Vendor portal", text: "Vendor update flow" },
-  { path: "/admin", heading: "Relay audit and monitoring", text: "Monitoring health" },
+  {
+    path: "/client",
+    heading: "Client portal",
+    text: "Client review flow",
+    protectedHeading: /Sign in required|Client portal access required/i,
+    protectedText: "Planner dashboard"
+  },
+  {
+    path: "/vendor",
+    heading: "Vendor portal",
+    text: "Vendor update flow",
+    protectedHeading: /Sign in required|Vendor portal access required/i,
+    protectedText: "Planner dashboard"
+  },
+  {
+    path: "/admin",
+    heading: "Relay audit and monitoring",
+    text: "Monitoring health",
+    protectedHeading: /Sign in required|Admin access required/i,
+    protectedText: "Planner dashboard"
+  },
   { path: "/operations/vendors", heading: "Vendor operations", text: "Contracts, payments, contacts, files, and risk" },
   { path: "/operations/venues", heading: "Venue logistics", text: "Permits, access, curfew, and logistics" },
   { path: "/operations/destinations", heading: "Destination readiness", text: "Travel, permits, weather, culture, and risks" },
@@ -169,8 +187,16 @@ try {
     });
     page.on("pageerror", (error) => consoleErrors.push(`${portal.path}: ${error.message}`));
     await page.goto(new URL(portal.path, APP_URL).toString(), { waitUntil: "domcontentloaded", timeout: 25_000 });
-    await page.getByText(portal.heading).waitFor({ timeout: 10_000 });
-    await page.getByText(portal.text).waitFor({ timeout: 10_000 });
+    let portalMode = "authorized";
+    try {
+      await page.getByText(portal.heading).waitFor({ timeout: 10_000 });
+      await page.getByText(portal.text).waitFor({ timeout: 10_000 });
+    } catch (error) {
+      if (!portal.protectedHeading) throw error;
+      portalMode = "protected";
+      await page.getByRole("heading", { name: portal.protectedHeading }).waitFor({ timeout: 10_000 });
+      await page.getByText(portal.protectedText).first().waitFor({ timeout: 10_000 });
+    }
     checks.push({
       viewport: portal.path,
       size: "1280x820",
@@ -180,7 +206,7 @@ try {
         scrollWidth: await page.evaluate(() => document.documentElement.scrollWidth),
         clientWidth: await page.evaluate(() => document.documentElement.clientWidth),
         horizontalOverflow: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1),
-        deployMarker: "portal",
+        deployMarker: portalMode,
         hasFrameworkOverlay: false
       }
     });

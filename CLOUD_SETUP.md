@@ -152,7 +152,37 @@ BLISS_AUTH_CLIENT_ID=<google oauth client id>
 BLISS_AUTH_CLIENT_SECRET=<google oauth client secret>
 BLISS_AUTH_SESSION_SECRET=<long random auth secret>
 BLISS_AUTH_ALLOWED_DOMAIN=<optional company domain>
+BLISS_ADMIN_EMAILS=owner@example.com,ops@example.com
+BLISS_PLANNER_EMAILS=planner@example.com
+BLISS_PORTAL_CLIENT_EMAILS=client@example.com
+BLISS_PORTAL_VENDOR_EMAILS=vendor@example.com
 BLISS_PUBLIC_APP_URL=https://bliss-planner.onrender.com
+```
+
+Managed auth enforcement:
+- `/admin` requires an authenticated owner, planner, or production user with full workspace access.
+- `/client` requires an authenticated client portal user or full workspace user.
+- `/vendor` requires an authenticated vendor portal user or full workspace user.
+- In local development without managed auth env, the app keeps the seeded local session for testing.
+
+File storage config:
+
+```bash
+BLISS_FILE_STORE_DIR=/var/data/bliss-relay/files
+BLISS_OBJECT_STORAGE_BUCKET=<optional object bucket>
+BLISS_OBJECT_STORAGE_REGION=<optional object region>
+BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT=<optional external upload endpoint>
+BLISS_OBJECT_STORAGE_TOKEN=<optional upload endpoint token>
+```
+
+Invite email config:
+
+```bash
+BLISS_EMAIL_PROVIDER=queued
+BLISS_EMAIL_FROM="Bliss Planner <noreply@example.com>"
+BLISS_RESEND_API_KEY=<optional resend key>
+BLISS_EMAIL_WEBHOOK_URL=<optional generic email webhook>
+BLISS_EMAIL_WEBHOOK_TOKEN=<optional webhook token>
 ```
 
 The relay health route reports whether the active backend is durable:

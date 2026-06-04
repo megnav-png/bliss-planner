@@ -7,8 +7,9 @@
 - Run `BLISS_APP_URL=https://bliss-planner.onrender.com BLISS_RELAY_TOKEN=<token> npm run sync:relay:health` after every deploy.
 
 ## Object Storage
-- Store uploaded contracts, permits, invoices, approvals, and snapshots in object storage before paid release.
-- Required env placeholders: `BLISS_OBJECT_STORAGE_BUCKET`, `BLISS_OBJECT_STORAGE_REGION`.
+- Store uploaded contracts, permits, invoices, approvals, and snapshots through the file storage provider before paid release.
+- Current hosted provider: server-file storage through `/api/files/store` with `BLISS_FILE_STORE_DIR`.
+- Object-storage handoff: set `BLISS_OBJECT_STORAGE_UPLOAD_ENDPOINT`, `BLISS_OBJECT_STORAGE_TOKEN`, `BLISS_OBJECT_STORAGE_BUCKET`, and `BLISS_OBJECT_STORAGE_REGION`.
 - Product rule: client-visible files must be encrypted before upload and revocable from the workspace admin surface.
 
 ## Regional Data Policy
@@ -19,8 +20,13 @@
 
 ## Email Delivery
 - Provider-ready endpoint: `/api/invites/send`.
-- Initial provider: Resend via `BLISS_RESEND_API_KEY` and `BLISS_EMAIL_FROM`.
+- Supported providers: queued fallback, Resend via `BLISS_RESEND_API_KEY`, or generic webhook via `BLISS_EMAIL_WEBHOOK_URL`.
 - If provider credentials are missing, the endpoint returns queued/fallback status instead of failing the planner invite flow.
+
+## Managed Auth Enforcement
+- `/admin`, `/client`, and `/vendor` are protected by managed auth when Google/OIDC env is configured.
+- Role mapping is controlled by `BLISS_ADMIN_EMAILS`, `BLISS_PLANNER_EMAILS`, `BLISS_PORTAL_CLIENT_EMAILS`, and `BLISS_PORTAL_VENDOR_EMAILS`.
+- Keep `BLISS_AUTH_SESSION_SECRET` rotated and never expose it in client-side config.
 
 ## Monitoring
 - Health endpoint: `/api/monitoring/health`.

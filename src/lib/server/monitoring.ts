@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { fileStorageHealth } from "@/lib/server/fileStorage";
+import { inviteEmailHealth } from "@/lib/server/inviteMailer";
 
 const SENTRY_DSN = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN || "";
 const RENDER_SERVICE_NAME = process.env.RENDER_SERVICE_NAME || "bliss-planner";
@@ -21,6 +23,8 @@ export function monitoringHealth() {
     relayTokenConfigured: Boolean(relayToken),
     relayTokenFingerprint: fingerprint(relayToken),
     relayTokenVersion: process.env.BLISS_RELAY_TOKEN_VERSION || "",
+    fileStorage: fileStorageHealth(),
+    inviteEmail: inviteEmailHealth(),
     uptimeSeconds: Math.round(process.uptime()),
     checkedAt: new Date().toISOString()
   };

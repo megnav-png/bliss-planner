@@ -525,16 +525,39 @@ export default function Dashboard({
     const file = event.target.files?.[0];
     if (!file || !attachmentTarget) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
+      const dataUrl = String(reader.result || "");
+      const fallbackFile: FileReference = {
+        id: `file-${Date.now()}`,
+        name: file.name,
+        kind: guessFileKind(file.name),
+        url: dataUrl,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        storageProvider: "local-data-url",
+        addedAt: new Date().toISOString()
+      };
+      let storedFile = fallbackFile;
+      try {
+        const response = await fetch("/api/files/store", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: file.name,
+            kind: fallbackFile.kind,
+            dataUrl
+          })
+        });
+        const body = await response.json().catch(() => ({}));
+        if (response.ok && body?.file) {
+          storedFile = body.file;
+        }
+      } catch {
+        storedFile = fallbackFile;
+      }
       onAttachFileToRecord({
         ...attachmentTarget,
-        file: {
-          id: `file-${Date.now()}`,
-          name: file.name,
-          kind: guessFileKind(file.name),
-          url: String(reader.result || ""),
-          addedAt: new Date().toISOString()
-        }
+        file: storedFile
       });
       setAttachmentTarget(null);
       event.target.value = "";

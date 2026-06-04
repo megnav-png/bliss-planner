@@ -1,20 +1,23 @@
 import Link from "next/link";
 import { seedState } from "@/lib/fakeData";
-import { getManagedAuthStatus } from "@/lib/server/managedAuth";
+import { requireManagedAccess } from "@/lib/server/managedAuth";
 
 export const dynamic = "force-dynamic";
 
 export default async function VendorPortalPage() {
-  const auth = await getManagedAuthStatus();
-  const allowed = ["VENDOR_PORTAL", "FULL_WORKSPACE"].includes(auth.session.portalAccess);
-  if (!allowed) {
+  const access = await requireManagedAccess({ portalAccess: ["VENDOR_PORTAL", "FULL_WORKSPACE"] });
+  const auth = access.auth;
+  if (!access.allowed) {
     return (
       <main className="portal-shell">
         <section className="panel card">
           <p className="kicker">Protected portal</p>
-          <h1>Vendor portal access required</h1>
+          <h1>{access.reason === "LOGIN_REQUIRED" ? "Sign in required" : "Vendor portal access required"}</h1>
           <p>This view is only available to invited vendors or workspace planners.</p>
-          <Link href="/" className="btn btn-brand">Planner dashboard</Link>
+          <div className="row-actions">
+            <Link href={auth.loginUrl} className="btn btn-brand">Sign in</Link>
+            <Link href="/" className="btn btn-soft">Planner dashboard</Link>
+          </div>
         </section>
       </main>
     );
