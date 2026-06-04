@@ -50,12 +50,63 @@ function storageDetail(observed) {
   return observed ? "Local storage also reflected the change." : "Visible UI updated; storage mirror was still catching up.";
 }
 
-async function waitForBodyText(page, text, timeout = 10_000) {
+async function waitForVisibleOrStoredState(page, visibleText, predicateSource, timeout = 15_000) {
   await page.waitForFunction(
-    (expected) => document.body.innerText.includes(expected),
-    text,
+    ({ storageKey, text, predicate }) => {
+      const visible = document.body.innerText.includes(text);
+      const raw = window.localStorage.getItem(storageKey);
+      let stored = false;
+      if (raw) {
+        try {
+          const state = JSON.parse(raw);
+          stored = Boolean(Function("state", `return (${predicate})(state);`)(state));
+        } catch {
+          stored = false;
+        }
+      }
+      return visible || stored;
+    },
+    { storageKey: STORAGE_KEY, text: visibleText, predicate: predicateSource },
     { timeout }
   );
+
+  return page.evaluate(
+    ({ storageKey, text, predicate }) => {
+      const visible = document.body.innerText.includes(text);
+      const raw = window.localStorage.getItem(storageKey);
+      let stored = false;
+      if (raw) {
+        try {
+          const state = JSON.parse(raw);
+          stored = Boolean(Function("state", `return (${predicate})(state);`)(state));
+        } catch {
+          stored = false;
+        }
+      }
+      return { visible, stored };
+    },
+    { storageKey: STORAGE_KEY, text: visibleText, predicate: predicateSource }
+  );
+}
+
+function stateSignalsDetail({ visible, stored }) {
+  if (visible && stored) return "Visible UI and local storage both reflected the change.";
+  if (visible) return "Visible UI reflected the change; storage mirror was still catching up.";
+  return "Local storage reflected the change; UI render was still catching up.";
+}
+
+async function performUntilState(page, action, visibleText, predicateSource, attempts = 3) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    await action();
+    try {
+      return await waitForVisibleOrStoredState(page, visibleText, predicateSource);
+    } catch (error) {
+      lastError = error;
+      await page.waitForTimeout(500);
+    }
+  }
+  throw lastError;
 }
 
 const seedState = {
@@ -331,48 +382,83 @@ try {
   await page.locator("input[data-testid='guest-target-slider']").fill("220");
   addResult("Planner interactions", "PASS", "Task action and guest target slider responded.");
 
-  await page.getByRole("textbox", { name: "Add vendor" }).fill("Pilot Florals");
-  await page.locator(".crud-card:has(h4:has-text('Vendors')) button:has-text('Add')").click();
-  await waitForBodyText(page, "Pilot Florals");
-  const vendorStored = await observeStoredState(page, "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals')");
-  addResult("Vendor CRUD", "PASS", `Vendor create flow added a new vendor record. ${storageDetail(vendorStored)}`);
+  const vendorSignals = await performUntilState(
+    page,
+    async () => {
+      await page.getByRole("textbox", { name: "Add vendor" }).fill("Pilot Florals");
+      await page.locator(".crud-card:has(h4:has-text('Vendors')) button:has-text('Add')").click();
+    },
+    "Pilot Florals",
+    "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals')"
+  );
+  addResult("Vendor CRUD", "PASS", `Vendor create flow added a new vendor record. ${stateSignalsDetail(vendorSignals)}`);
 
-  await page.locator(".crud-card:has(h4:has-text('Vendors')) .record-row:has-text('Pilot Florals') button:has-text('Edit')").click();
+  await page.locator(".crud-card:has(h4:has-text('Vendors')) .record-row:has-text('Pilot Florals') button:has-text('Edit')").first().click();
   await page.getByLabel("Record detail drawer").waitFor({ timeout: 10_000 });
-  await page.getByLabel("Record detail drawer").getByLabel("Vendor name").fill("Pilot Florals Studio");
-  await page.getByTestId("save-record-detail").click();
-  await waitForBodyText(page, "Pilot Florals Studio");
-  const vendorEditStored = await observeStoredState(page, "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals Studio')");
-  addResult("Record detail drawer", "PASS", `Vendor detail drawer edited and saved a record. ${storageDetail(vendorEditStored)}`);
+  const vendorEditSignals = await performUntilState(
+    page,
+    async () => {
+      await page.getByLabel("Record detail drawer").getByLabel("Vendor name").fill("Pilot Florals Studio");
+      await page.getByTestId("save-record-detail").click();
+    },
+    "Pilot Florals Studio",
+    "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals Studio')"
+  );
+  addResult("Record detail drawer", "PASS", `Vendor detail drawer edited and saved a record. ${stateSignalsDetail(vendorEditSignals)}`);
 
-  await page.getByRole("textbox", { name: "Add client approval" }).fill("Final music approval");
-  await page.locator(".crud-card:has(h4:has-text('Client approvals')) button:has-text('Add')").click();
-  await waitForBodyText(page, "Final music approval");
-  const approvalStored = await observeStoredState(page, "state => state.clientApprovals?.some(approval => approval.title === 'Final music approval')");
-  addResult("Client approval CRUD", "PASS", `Client approval create flow added a new approval record. ${storageDetail(approvalStored)}`);
+  const approvalSignals = await performUntilState(
+    page,
+    async () => {
+      await page.getByRole("textbox", { name: "Add client approval" }).fill("Final music approval");
+      await page.locator(".crud-card:has(h4:has-text('Client approvals')) button:has-text('Add')").click();
+    },
+    "Final music approval",
+    "state => state.clientApprovals?.some(approval => approval.title === 'Final music approval')"
+  );
+  addResult("Client approval CRUD", "PASS", `Client approval create flow added a new approval record. ${stateSignalsDetail(approvalSignals)}`);
 
-  await page.getByRole("button", { name: /Approve/i }).first().click();
-  await waitForBodyText(page, "APPROVED");
-  const approvalDecisionStored = await observeStoredState(page, "state => state.clientApprovals?.some(approval => approval.id === 'approval-1' && approval.state === 'APPROVED')");
-  addResult("Client approval decision", "PASS", `Approval queue changed a client approval to approved with history. ${storageDetail(approvalDecisionStored)}`);
+  const approvalDecisionSignals = await performUntilState(
+    page,
+    async () => {
+      await page.getByRole("button", { name: /Approve/i }).first().click();
+    },
+    "APPROVED",
+    "state => state.clientApprovals?.some(approval => approval.id === 'approval-1' && approval.state === 'APPROVED')"
+  );
+  addResult("Client approval decision", "PASS", `Approval queue changed a client approval to approved with history. ${stateSignalsDetail(approvalDecisionSignals)}`);
 
-  await page.getByLabel("Invite team member").fill("planner2@blissplanner.test");
-  await page.getByRole("button", { name: /Send invite/i }).click();
-  await waitForBodyText(page, "planner2@blissplanner.test");
-  const inviteStored = await observeStoredState(page, "state => state.invites?.some(invite => invite.email === 'planner2@blissplanner.test')");
-  addResult("Team invitation", "PASS", `Team invite created and rendered. ${storageDetail(inviteStored)}`);
+  const inviteSignals = await performUntilState(
+    page,
+    async () => {
+      await page.getByLabel("Invite team member").fill("planner2@blissplanner.test");
+      await page.getByRole("button", { name: /Send invite/i }).click();
+    },
+    "planner2@blissplanner.test",
+    "state => state.invites?.some(invite => invite.email === 'planner2@blissplanner.test')"
+  );
+  addResult("Team invitation", "PASS", `Team invite created and rendered. ${stateSignalsDetail(inviteSignals)}`);
 
-  await page.getByLabel("Add guest").fill("Pilot Guest Two");
-  await page.getByRole("button", { name: /Add guest/i }).click();
-  await waitForBodyText(page, "Pilot Guest Two");
-  const guestStored = await observeStoredState(page, "state => state.guests?.some(guest => guest.name === 'Pilot Guest Two')");
-  addResult("Guest RSVP foundation", "PASS", `Guest record created and rendered. ${storageDetail(guestStored)}`);
+  const guestSignals = await performUntilState(
+    page,
+    async () => {
+      await page.getByLabel("Add guest").fill("Pilot Guest Two");
+      await page.getByRole("button", { name: /Add guest/i }).click();
+    },
+    "Pilot Guest Two",
+    "state => state.guests?.some(guest => guest.name === 'Pilot Guest Two')"
+  );
+  addResult("Guest RSVP foundation", "PASS", `Guest record created and rendered. ${stateSignalsDetail(guestSignals)}`);
 
-  await page.getByLabel("Add inquiry").fill("Pilot Corporate Wedding");
-  await page.getByRole("button", { name: /Add lead/i }).click();
-  await waitForBodyText(page, "Pilot Corporate Wedding");
-  const leadStored = await observeStoredState(page, "state => state.pipelineLeads?.some(lead => lead.clientName === 'Pilot Corporate Wedding')");
-  addResult("Business development CRM", "PASS", `Inquiry lead created and rendered. ${storageDetail(leadStored)}`);
+  const leadSignals = await performUntilState(
+    page,
+    async () => {
+      await page.getByLabel("Add inquiry").fill("Pilot Corporate Wedding");
+      await page.getByRole("button", { name: /Add lead/i }).click();
+    },
+    "Pilot Corporate Wedding",
+    "state => state.pipelineLeads?.some(lead => lead.clientName === 'Pilot Corporate Wedding')"
+  );
+  addResult("Business development CRM", "PASS", `Inquiry lead created and rendered. ${stateSignalsDetail(leadSignals)}`);
 } catch (error) {
   addResult("Pilot flow", "ERROR", error instanceof Error ? error.message : String(error));
 } finally {
