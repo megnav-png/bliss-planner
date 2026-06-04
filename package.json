@@ -2,6 +2,9 @@
   "name": "bliss-planner",
   "private": true,
   "version": "0.1.0",
+  "description": "Bliss Planner local-first wedding planning dashboard and desktop app.",
+  "author": "Playora",
+  "main": "desktop/main.cjs",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -13,8 +16,11 @@
     "phase6:pilot:cloud": "bash scripts/run-phase6-cloud.sh",
     "phase6:pilot:local": "APP_HOST=127.0.0.1 APP_PORT=3002 WOVOPS_APP_URL=http://127.0.0.1:3002 WOVOPS_PILOT_SKIP_IPV6=true WOVOPS_PILOT_SKIP_PRECHECK=true WOVOPS_PILOT_ALLOW_HOST_ALIASES=false WOVOPS_PILOT_FORCE_IPV4_LOOPBACK=true node scripts/phase6-controlled-pilot.mjs",
     "phase6:pilot:remote": "bash scripts/run-phase6-remote.sh",
+    "phase6:pilot:deterministic": "node scripts/deterministic-pilot.mjs",
     "railway:deploy": "bash scripts/run-railway-deploy.sh",
+    "sync:relay:prototype": "node sync-relay/prototype-server.mjs",
     "phase7:desktop:launch": "BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3002 node scripts/run-desktop.mjs",
+    "phase7:desktop:smoke": "BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3090 BLISS_DESKTOP_SMOKE_TEST=true node scripts/run-desktop.mjs",
     "phase7:desktop:package": "node scripts/package-desktop.mjs"
   },
   "dependencies": {
@@ -28,6 +34,8 @@
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
+    "electron": "^42.3.3",
+    "electron-builder": "^26.8.1",
     "playwright": "^1.60.0",
     "typescript": "^6.0.3"
   },

@@ -1,4 +1,15 @@
-import { AppState, BudgetLine, CulturalChecklistItem, GuestGroup, ReadinessItem, Task } from "./types";
+import {
+  AppState,
+  BudgetLine,
+  ClientApproval,
+  CulturalChecklistItem,
+  DestinationProfile,
+  GuestGroup,
+  ReadinessItem,
+  Task,
+  Vendor,
+  Venue
+} from "./types";
 
 const budgetLines: BudgetLine[] = [
   { id: "line-venue", category: "Venue", planned: 160000, actual: 96000 },
@@ -45,6 +56,127 @@ const tasks: Task[] = [
     dueAt: "2026-12-10",
     dependsOn: [],
     impacts: ["LOGISTICS", "CLIENT"]
+  }
+];
+
+const vendors: Vendor[] = [
+  {
+    id: "vendor-kyoto-caterer",
+    weddingId: "wed_kyoto_001",
+    name: "Kyo Table Collective",
+    category: "CATERING",
+    owner: "Operations",
+    status: "QUOTED",
+    estimate: 98000,
+    currency: "JPY",
+    linkedTaskIds: ["task-001"],
+    notes: "Needs final vegetarian/seafood split before contract lock."
+  },
+  {
+    id: "vendor-kyoto-decor",
+    weddingId: "wed_kyoto_001",
+    name: "Golden Moss Floral",
+    category: "DECOR",
+    owner: "Production",
+    status: "CONTRACTED",
+    estimate: 52000,
+    currency: "JPY",
+    linkedTaskIds: [],
+    notes: "Install schedule depends on venue access window."
+  },
+  {
+    id: "vendor-marrakech-transfer",
+    weddingId: "wed_marrakech_001",
+    name: "Atlas Arrival Logistics",
+    category: "LOGISTICS",
+    owner: "Guest Ops",
+    status: "AT_RISK",
+    estimate: 38000,
+    currency: "MAD",
+    linkedTaskIds: ["task-003"],
+    notes: "Awaiting passport and ID list."
+  }
+];
+
+const venues: Venue[] = [
+  {
+    id: "venue-kyoto-shrine",
+    weddingId: "wed_kyoto_001",
+    name: "Higashiyama Garden Shrine",
+    city: "Kyoto",
+    country: "Japan",
+    status: "PERMIT_PENDING",
+    capacity: 240,
+    curfew: "21:30",
+    linkedTaskIds: ["task-002"],
+    notes: "Ceremony protocol approval required before final run sheet."
+  },
+  {
+    id: "venue-marrakech-riad",
+    weddingId: "wed_marrakech_001",
+    name: "Riad El Noor",
+    city: "Marrakech",
+    country: "Morocco",
+    status: "HOLD",
+    capacity: 190,
+    curfew: "23:00",
+    linkedTaskIds: [],
+    notes: "Sound permit and buyout contract are the next gates."
+  }
+];
+
+const destinations: DestinationProfile[] = [
+  {
+    id: "destination-kyoto",
+    weddingId: "wed_kyoto_001",
+    name: "Kyoto destination profile",
+    region: "East Asia",
+    travelRisk: "LOW",
+    visaNotes: "Check nationality-specific visa rules 90 days before arrival.",
+    weatherNotes: "Autumn evenings can be cool; shawl note recommended.",
+    culturalNotes: "Brief guests on shrine etiquette, shoes, and photography limits.",
+    linkedTaskIds: ["task-002"]
+  },
+  {
+    id: "destination-marrakech",
+    weddingId: "wed_marrakech_001",
+    name: "Marrakech destination profile",
+    region: "North Africa",
+    travelRisk: "MEDIUM",
+    visaNotes: "Collect passport details for transfer manifest and hotel pre-check.",
+    weatherNotes: "Dry daytime heat with cooler evenings; hydration plan needed.",
+    culturalNotes: "Add dress, local host etiquette, and tea-service guidance.",
+    linkedTaskIds: ["task-003"]
+  }
+];
+
+const clientApprovals: ClientApproval[] = [
+  {
+    id: "approval-kyoto-shrine",
+    weddingId: "wed_kyoto_001",
+    title: "Shrine protocol and procession sign-off",
+    owner: "Aster Bellamy",
+    state: "CLIENT_REVIEW",
+    dueAt: "2026-09-22",
+    linkedTaskIds: ["task-002"]
+  },
+  {
+    id: "approval-kyoto-menu",
+    weddingId: "wed_kyoto_001",
+    title: "Final vegetarian and seafood count",
+    owner: "Operations",
+    state: "DRAFT",
+    dueAt: "2026-09-28",
+    linkedTaskIds: ["task-001"]
+  },
+  {
+    id: "approval-marrakech-transfer",
+    weddingId: "wed_marrakech_001",
+    title: "Airport transfer guest ID pack",
+    owner: "Guest Ops",
+    state: "ESCALATION",
+    dueAt: "2026-12-04",
+    linkedTaskIds: ["task-003"]
   }
 ];
 
@@ -265,6 +397,10 @@ export const seedState: AppState = {
     }
   ],
   tasks,
+  vendors,
+  venues,
+  destinations,
+  clientApprovals,
   activeWeddingId: "wed_kyoto_001",
   onboarded: false
 };

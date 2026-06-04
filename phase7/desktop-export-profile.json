@@ -32,6 +32,7 @@
   "mac": {
     "category": "public.app-category.productivity",
     "icon": "public/icons/bliss-planner-icon-512.png",
+    "identity": null,
     "target": ["dmg", "zip"]
   },
   "win": {

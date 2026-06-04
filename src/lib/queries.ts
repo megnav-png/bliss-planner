@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   completeOnboarding,
+  deleteClientApproval,
+  deleteCulturalChecklistItem,
+  deleteDestination,
+  deleteVendor,
+  deleteVenue,
   exportPlannerSyncPackage,
   getPlannerState,
   getPlannerSyncDiagnostics,
@@ -14,7 +19,17 @@ import {
   setSyncMode,
   clearPlannerSyncState,
   toggleTask,
-  updateGuestTarget
+  updateGuestTarget,
+  upsertClientApproval,
+  upsertCulturalChecklistItem,
+  upsertDestination,
+  upsertVendor,
+  upsertVenue,
+  ClientApprovalDraft,
+  CulturalChecklistDraft,
+  DestinationDraft,
+  VendorDraft,
+  VenueDraft
 } from "./repository";
 import { AppState } from "./types";
 import type { SyncDiagnostics, SyncRunSummary } from "./syncEngine";
@@ -87,6 +102,57 @@ export function useSetActiveWedding() {
       void queryClient.invalidateQueries({ queryKey: plannerQueryKeys.state() });
     }
   });
+}
+
+function useStateMutation<TInput>(mutationFn: (input: TInput) => Promise<AppState>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (nextState) => {
+      queryClient.setQueryData(plannerQueryKeys.state(), nextState);
+      void queryClient.invalidateQueries({ queryKey: plannerQueryKeys.sync.diagnostics() });
+    }
+  });
+}
+
+export function useUpsertVendor() {
+  return useStateMutation<VendorDraft>(upsertVendor);
+}
+
+export function useDeleteVendor() {
+  return useStateMutation<string>(deleteVendor);
+}
+
+export function useUpsertVenue() {
+  return useStateMutation<VenueDraft>(upsertVenue);
+}
+
+export function useDeleteVenue() {
+  return useStateMutation<string>(deleteVenue);
+}
+
+export function useUpsertDestination() {
+  return useStateMutation<DestinationDraft>(upsertDestination);
+}
+
+export function useDeleteDestination() {
+  return useStateMutation<string>(deleteDestination);
+}
+
+export function useUpsertCulturalChecklistItem() {
+  return useStateMutation<CulturalChecklistDraft>(upsertCulturalChecklistItem);
+}
+
+export function useDeleteCulturalChecklistItem() {
+  return useStateMutation<{ weddingId: string; itemId: string }>(deleteCulturalChecklistItem);
+}
+
+export function useUpsertClientApproval() {
+  return useStateMutation<ClientApprovalDraft>(upsertClientApproval);
+}
+
+export function useDeleteClientApproval() {
+  return useStateMutation<string>(deleteClientApproval);
 }
 
 export function useSyncDiagnostics() {

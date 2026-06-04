@@ -1,6 +1,6 @@
-import { AppState } from "./types";
+import { AppState, ClientApproval, CulturalChecklistItem, DestinationProfile, Vendor, Venue } from "./types";
 import { seedState } from "./fakeData";
-import { loadState, saveState } from "./storage";
+import { loadPersistedState, saveState } from "./storage";
 import {
   clearSyncedStore,
   exportSyncPackage as exportSyncStatePackage,
@@ -36,11 +36,47 @@ export type OnboardingPayload = {
   settings: AppState["settings"];
 };
 
+export type VendorDraft = Omit<Vendor, "id" | "weddingId" | "linkedTaskIds"> & {
+  id?: string;
+  weddingId: string;
+  linkedTaskIds?: string[];
+};
+
+export type VenueDraft = Omit<Venue, "id" | "weddingId" | "linkedTaskIds"> & {
+  id?: string;
+  weddingId: string;
+  linkedTaskIds?: string[];
+};
+
+export type DestinationDraft = Omit<DestinationProfile, "id" | "weddingId" | "linkedTaskIds"> & {
+  id?: string;
+  weddingId: string;
+  linkedTaskIds?: string[];
+};
+
+export type CulturalChecklistDraft = Omit<CulturalChecklistItem, "id" | "linkedTaskIds"> & {
+  id?: string;
+  weddingId: string;
+  linkedTaskIds?: string[];
+};
+
+export type ClientApprovalDraft = Omit<ClientApproval, "id" | "linkedTaskIds"> & {
+  id?: string;
+  linkedTaskIds?: string[];
+};
+
 type PlannerStateResult = {
   ok: boolean;
 };
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function createId(prefix: string) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function isChanged<T>(left: T, right: T): boolean {
   return JSON.stringify(left) !== JSON.stringify(right);
@@ -57,6 +93,10 @@ function ensureState(value: AppState | null | undefined): AppState {
     settings: value.settings,
     weddings: value.weddings ?? [],
     tasks: value.tasks ?? [],
+    vendors: value.vendors ?? [],
+    venues: value.venues ?? [],
+    destinations: value.destinations ?? [],
+    clientApprovals: value.clientApprovals ?? [],
     activeWeddingId: value.activeWeddingId ?? seedState.activeWeddingId,
     onboarded: value.onboarded ?? seedState.onboarded
   };
@@ -81,7 +121,7 @@ function plannerIdentityFromProfile(profile: AppState["profile"]): string {
 }
 
 async function readState(): Promise<AppState> {
-  const loaded = loadState<AppState>(seedState);
+  const loaded = await loadPersistedState<AppState>(seedState);
   return ensureState(loaded);
 }
 
@@ -215,6 +255,167 @@ export async function updateGuestTarget(payload: GuestTargetPayload): Promise<Ap
     });
   }
 
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertVendor(draft: VendorDraft): Promise<AppState> {
+  const current = await readState();
+  const vendor: Vendor = {
+    ...draft,
+    id: draft.id || createId("vendor"),
+    linkedTaskIds: draft.linkedTaskIds ?? []
+  };
+  const exists = current.vendors.some((item) => item.id === vendor.id);
+  const nextState = {
+    ...current,
+    vendors: exists
+      ? current.vendors.map((item) => (item.id === vendor.id ? vendor : item))
+      : [...current.vendors, vendor]
+  };
+  recordSyncEvent({ entity: "vendor", entityId: vendor.id, operation: "UPSERT", payload: vendor });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function deleteVendor(vendorId: string): Promise<AppState> {
+  const current = await readState();
+  const nextState = { ...current, vendors: current.vendors.filter((item) => item.id !== vendorId) };
+  recordSyncEvent({ entity: "vendor", entityId: vendorId, operation: "DELETE", payload: { id: vendorId } });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertVenue(draft: VenueDraft): Promise<AppState> {
+  const current = await readState();
+  const venue: Venue = {
+    ...draft,
+    id: draft.id || createId("venue"),
+    linkedTaskIds: draft.linkedTaskIds ?? []
+  };
+  const exists = current.venues.some((item) => item.id === venue.id);
+  const nextState = {
+    ...current,
+    venues: exists
+      ? current.venues.map((item) => (item.id === venue.id ? venue : item))
+      : [...current.venues, venue]
+  };
+  recordSyncEvent({ entity: "venue", entityId: venue.id, operation: "UPSERT", payload: venue });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function deleteVenue(venueId: string): Promise<AppState> {
+  const current = await readState();
+  const nextState = { ...current, venues: current.venues.filter((item) => item.id !== venueId) };
+  recordSyncEvent({ entity: "venue", entityId: venueId, operation: "DELETE", payload: { id: venueId } });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertDestination(draft: DestinationDraft): Promise<AppState> {
+  const current = await readState();
+  const destination: DestinationProfile = {
+    ...draft,
+    id: draft.id || createId("destination"),
+    linkedTaskIds: draft.linkedTaskIds ?? []
+  };
+  const exists = current.destinations.some((item) => item.id === destination.id);
+  const nextState = {
+    ...current,
+    destinations: exists
+      ? current.destinations.map((item) => (item.id === destination.id ? destination : item))
+      : [...current.destinations, destination]
+  };
+  recordSyncEvent({ entity: "destination", entityId: destination.id, operation: "UPSERT", payload: destination });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function deleteDestination(destinationId: string): Promise<AppState> {
+  const current = await readState();
+  const nextState = { ...current, destinations: current.destinations.filter((item) => item.id !== destinationId) };
+  recordSyncEvent({ entity: "destination", entityId: destinationId, operation: "DELETE", payload: { id: destinationId } });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertCulturalChecklistItem(draft: CulturalChecklistDraft): Promise<AppState> {
+  const current = await readState();
+  const nextWeddings = current.weddings.map((wedding) => {
+    if (wedding.id !== draft.weddingId) return wedding;
+    const item: CulturalChecklistItem = {
+      id: draft.id || createId("culture"),
+      label: draft.label,
+      culture: draft.culture,
+      owner: draft.owner,
+      status: draft.status,
+      linkedTaskIds: draft.linkedTaskIds ?? []
+    };
+    const exists = wedding.culturalChecklist.some((entry) => entry.id === item.id);
+    recordSyncEvent({ entity: "cultural_item", entityId: item.id, operation: "UPSERT", payload: { ...item, weddingId: wedding.id } });
+    return {
+      ...wedding,
+      culturalChecklist: exists
+        ? wedding.culturalChecklist.map((entry) => (entry.id === item.id ? item : entry))
+        : [...wedding.culturalChecklist, item]
+    };
+  });
+  const nextState = { ...current, weddings: nextWeddings };
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function deleteCulturalChecklistItem(payload: { weddingId: string; itemId: string }): Promise<AppState> {
+  const current = await readState();
+  const nextState = {
+    ...current,
+    weddings: current.weddings.map((wedding) =>
+      wedding.id === payload.weddingId
+        ? { ...wedding, culturalChecklist: wedding.culturalChecklist.filter((item) => item.id !== payload.itemId) }
+        : wedding
+    )
+  };
+  recordSyncEvent({ entity: "cultural_item", entityId: payload.itemId, operation: "DELETE", payload });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function upsertClientApproval(draft: ClientApprovalDraft): Promise<AppState> {
+  const current = await readState();
+  const approval: ClientApproval = {
+    ...draft,
+    id: draft.id || createId("approval"),
+    linkedTaskIds: draft.linkedTaskIds ?? []
+  };
+  const exists = current.clientApprovals.some((item) => item.id === approval.id);
+  const nextState = {
+    ...current,
+    clientApprovals: exists
+      ? current.clientApprovals.map((item) => (item.id === approval.id ? approval : item))
+      : [...current.clientApprovals, approval],
+    weddings: current.weddings.map((wedding) =>
+      wedding.id === approval.weddingId
+        ? {
+            ...wedding,
+            clientStatus: {
+              ...wedding.clientStatus,
+              approvalState: approval.state,
+              pendingDecisions: Array.from(new Set([...wedding.clientStatus.pendingDecisions, approval.title]))
+            }
+          }
+        : wedding
+    )
+  };
+  recordSyncEvent({ entity: "client_approval", entityId: approval.id, operation: "UPSERT", payload: approval });
+  await writeState(nextState);
+  return nextState;
+}
+
+export async function deleteClientApproval(approvalId: string): Promise<AppState> {
+  const current = await readState();
+  const nextState = { ...current, clientApprovals: current.clientApprovals.filter((item) => item.id !== approvalId) };
+  recordSyncEvent({ entity: "client_approval", entityId: approvalId, operation: "DELETE", payload: { id: approvalId } });
   await writeState(nextState);
   return nextState;
 }

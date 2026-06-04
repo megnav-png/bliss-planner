@@ -8,6 +8,7 @@ const host = process.env.BLISS_APP_HOST || process.env.WOVOPS_APP_HOST || "127.0
 const port = Number(process.env.BLISS_APP_PORT || process.env.WOVOPS_APP_PORT || "3002");
 const appUrl = process.env.BLISS_APP_URL || process.env.WOVOPS_APP_URL || `http://${host}:${port}`;
 const shouldStartServer = String(process.env.BLISS_DESKTOP_START_SERVER || process.env.WOVOPS_DESKTOP_START_SERVER || "true").toLowerCase() !== "false";
+const smokeTest = String(process.env.BLISS_DESKTOP_SMOKE_TEST || "false").toLowerCase() === "true";
 const nextBin = path.join(projectRoot, "node_modules", "next", "dist", "bin", "next");
 const nextOutput = path.join(projectRoot, ".next");
 
@@ -99,8 +100,16 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadURL(appUrl).catch((error) => {
+  mainWindow.loadURL(appUrl).then(() => {
+    if (smokeTest) {
+      console.log(`Desktop smoke loaded ${appUrl}`);
+      setTimeout(() => app.quit(), 500);
+    }
+  }).catch((error) => {
     console.error("Failed to load app URL:", error);
+    if (smokeTest) {
+      app.exit(1);
+    }
   });
 }
 

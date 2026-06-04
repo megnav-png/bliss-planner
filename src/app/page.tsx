@@ -14,10 +14,20 @@ import {
   useSetPlannerIdentity,
   useSetSyncEndpoint,
   useSetSyncMode,
+  useDeleteClientApproval,
+  useDeleteCulturalChecklistItem,
+  useDeleteDestination,
+  useDeleteVendor,
+  useDeleteVenue,
   useResetPlannerState,
   useSyncDiagnostics,
   useToggleTask,
-  useUpdateGuestTarget
+  useUpdateGuestTarget,
+  useUpsertClientApproval,
+  useUpsertCulturalChecklistItem,
+  useUpsertDestination,
+  useUpsertVendor,
+  useUpsertVenue
 } from "@/lib/queries";
 
 export default function HomePage() {
@@ -36,6 +46,16 @@ export default function HomePage() {
   const importPackageMutation = useImportSyncPackage();
   const clearSyncMutation = useClearPlannerSyncState();
   const resetPlannerStateMutation = useResetPlannerState();
+  const upsertVendorMutation = useUpsertVendor();
+  const deleteVendorMutation = useDeleteVendor();
+  const upsertVenueMutation = useUpsertVenue();
+  const deleteVenueMutation = useDeleteVenue();
+  const upsertDestinationMutation = useUpsertDestination();
+  const deleteDestinationMutation = useDeleteDestination();
+  const upsertCultureMutation = useUpsertCulturalChecklistItem();
+  const deleteCultureMutation = useDeleteCulturalChecklistItem();
+  const upsertApprovalMutation = useUpsertClientApproval();
+  const deleteApprovalMutation = useDeleteClientApproval();
 
   if (isLoading) {
     return (
@@ -122,6 +142,36 @@ export default function HomePage() {
       onResetWorkspace={() => {
         setLocalStateOverride(null);
         void resetPlannerStateMutation.mutateAsync();
+      }}
+      onUpsertVendor={(draft) => {
+        void upsertVendorMutation.mutateAsync(draft);
+      }}
+      onDeleteVendor={(id) => {
+        void deleteVendorMutation.mutateAsync(id);
+      }}
+      onUpsertVenue={(draft) => {
+        void upsertVenueMutation.mutateAsync(draft);
+      }}
+      onDeleteVenue={(id) => {
+        void deleteVenueMutation.mutateAsync(id);
+      }}
+      onUpsertDestination={(draft) => {
+        void upsertDestinationMutation.mutateAsync(draft);
+      }}
+      onDeleteDestination={(id) => {
+        void deleteDestinationMutation.mutateAsync(id);
+      }}
+      onUpsertCulturalChecklistItem={(draft) => {
+        void upsertCultureMutation.mutateAsync(draft);
+      }}
+      onDeleteCulturalChecklistItem={(payload) => {
+        void deleteCultureMutation.mutateAsync(payload);
+      }}
+      onUpsertClientApproval={(draft) => {
+        void upsertApprovalMutation.mutateAsync(draft);
+      }}
+      onDeleteClientApproval={(id) => {
+        void deleteApprovalMutation.mutateAsync(id);
       }}
       syncError={
         importPackageMutation.error?.message ||

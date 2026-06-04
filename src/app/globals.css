@@ -612,6 +612,76 @@ button:disabled {
   background: radial-gradient(circle at center, var(--amber) 45%, #fff 47%);
 }
 
+.crud-panel {
+  margin-bottom: 16px;
+}
+
+.crud-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.crud-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 250, 244, 0.72);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.crud-card h4 {
+  margin: 0;
+}
+
+.inline-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.record-list {
+  display: grid;
+  gap: 8px;
+}
+
+.record-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.record-row > div {
+  min-width: 0;
+}
+
+.record-row p {
+  margin: 5px 0 0;
+  font-size: 13px;
+}
+
+.record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  align-content: flex-start;
+}
+
+.record-actions .btn {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
 .impact-grid {
   display: grid;
   gap: 10px;
@@ -1216,9 +1286,19 @@ button:disabled {
 
   .readiness-row,
   .culture-row,
+  .record-row,
   .task-card-foot {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .crud-grid,
+  .inline-create {
+    grid-template-columns: 1fr;
+  }
+
+  .record-actions {
+    justify-content: flex-start;
   }
 }
 

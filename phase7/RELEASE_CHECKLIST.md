@@ -8,7 +8,8 @@
    - [ ] No new critical console or network errors in latest pilot run.
 
 2. **Desktop wrapper smoke validation**
-   - [ ] `npm run phase6:pilot:single` passes before packaging.
+   - [ ] `npm run phase6:pilot:deterministic` passes before packaging.
+   - [ ] `npm run phase7:desktop:smoke` opens the wrapper, loads the app, and exits cleanly.
    - [ ] `npm run phase7:desktop:launch` opens app window and shows onboarding/dashboard flow.
    - [ ] App reconnects after host tab close/reopen using same local storage keys.
    - [ ] Window resize works on 1024x720 minimum and portrait mobile simulation from devtools remains readable.
@@ -24,6 +25,7 @@
 
 4. **Build + package validation**
    - [ ] `npm run phase7:desktop:package` completes.
+   - [ ] Development artifacts exist in `release/` (`BlissPlanner-0.1.0-arm64.dmg`, `BlissPlanner-0.1.0-arm64-mac.zip`).
    - [ ] Installer opens and launches the app successfully.
    - [ ] A fresh install keeps local storage and sync profile behavior intact.
    - [ ] Re-import package flow remains available after install.
@@ -39,14 +41,17 @@
 
 6. **Optional sync backend gate**
    - [ ] `phase7/SYNC_BACKEND_ARCHITECTURE.md` reviewed.
+   - [ ] `BLISS_RELAY_SECRET=dev-secret npm run sync:relay:prototype` starts locally.
+   - [ ] Relay smoke validates `/health`, `/sync/push`, and `/sync/pull`.
    - [ ] Encrypted package format approved before relay API work begins.
    - [ ] Device pairing, revocation, retention, and delete-cloud-data flows are scoped.
 
 ## Suggested release order
-1. `npm run phase6:pilot:single`
+1. `npm run phase6:pilot:deterministic`
 2. `npm run build`
-3. `npm run phase7:desktop:package`
-4. Install package artifact in a clean machine profile and run:
+3. `npm run phase7:desktop:smoke`
+4. `npm run phase7:desktop:package`
+5. Install package artifact in a clean machine profile and run:
    - onboarding flow
    - reset + onboarding recheck
    - task interaction + guest target slider

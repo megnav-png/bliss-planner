@@ -7,12 +7,16 @@ This phase introduces a desktop execution wrapper and formal release path.
   Wraps the web app in an Electron shell, launches Next locally on start, and serves the app via a local URL.
 - **Launcher script** (`scripts/run-desktop.mjs`)  
   Single command to launch the desktop shell.
+- **Desktop smoke script** (`npm run phase7:desktop:smoke`)  
+  Launches Electron in smoke-test mode, confirms the local app loads, then exits.
 - **Packaging script** (`scripts/package-desktop.mjs`)  
   Builds web artifacts and runs `electron-builder` using the export profile.
 - **Export profile** (`phase7/desktop-export-profile.json`)  
   Defines package IDs, output targets, icons, artifact names, and OS targets.
 - **Sync backend architecture** (`phase7/SYNC_BACKEND_ARCHITECTURE.md`)  
   Defines the optional encrypted relay approach for cross-device continuity without storing readable planner data.
+- **Encrypted relay prototype** (`sync-relay/prototype-server.mjs`)  
+  Provides a local AES-256-GCM at-rest push/pull relay for validating the sync contract before choosing hosted infrastructure.
 - **Release/Install docs** (`phase7/INSTALL_DESKTOP.md`, `phase7/RELEASE_CHECKLIST.md`)
 
 ## Quick commands
@@ -24,6 +28,14 @@ This phase introduces a desktop execution wrapper and formal release path.
   ```bash
   npm run phase7:desktop:package
   ```
+- Run deterministic dashboard pilot:
+  ```bash
+  WOVOPS_APP_URL=http://127.0.0.1:3002 npm run phase6:pilot:deterministic
+  ```
+- Run local encrypted relay prototype:
+  ```bash
+  BLISS_RELAY_SECRET=dev-secret npm run sync:relay:prototype
+  ```
 
 ## Rollback
 - If desktop launch fails, run web-only first and confirm `npm run build` succeeds:
@@ -31,3 +43,4 @@ This phase introduces a desktop execution wrapper and formal release path.
   npm run phase6:pilot:single
   ```
 - If packaging fails on the host, regenerate profile entries in `phase7/desktop-export-profile.json` and rerun packaging.
+- Local macOS packages are unsigned development artifacts. Production distribution still needs Apple Developer signing and notarization.

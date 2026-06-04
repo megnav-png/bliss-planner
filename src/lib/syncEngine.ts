@@ -1,4 +1,4 @@
-import { AppState, PlannerSettings, PlannerProfile, Task, Wedding } from "./types";
+import { AppState, ClientApproval, CulturalChecklistItem, DestinationProfile, PlannerSettings, PlannerProfile, Task, Vendor, Venue, Wedding } from "./types";
 
 const SYNC_STORAGE_KEY = "wovops.phase2.sync.state";
 const SYNC_PACKAGE_KEY = "wovops.phase2.sync.package";
@@ -6,7 +6,17 @@ const SYNC_PACKAGE_KEY = "wovops.phase2.sync.package";
 type SyncOperation = "UPSERT" | "DELETE";
 type SyncEventStatus = "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
 
-type SyncEntity = "planner_profile" | "planner_settings" | "planner_meta" | "wedding" | "task";
+type SyncEntity =
+  | "planner_profile"
+  | "planner_settings"
+  | "planner_meta"
+  | "wedding"
+  | "task"
+  | "vendor"
+  | "venue"
+  | "destination"
+  | "cultural_item"
+  | "client_approval";
 
 interface SyncEnvelope {
   id: string;
@@ -309,6 +319,55 @@ function mergeWedding(state: AppState, event: SyncEvent): AppState {
   };
 }
 
+function mergeArrayEntity<T extends { id: string }>(
+  items: T[],
+  event: SyncEvent
+): T[] {
+  const target = (event.payload ?? {}) as Partial<T> & { id?: string };
+  if (!target.id) return items;
+  if (event.operation === "DELETE") {
+    return items.filter((item) => item.id !== target.id);
+  }
+  const existingIndex = items.findIndex((item) => item.id === target.id);
+  if (existingIndex === -1) return [...items, target as T];
+  const nextItems = [...items];
+  nextItems[existingIndex] = { ...nextItems[existingIndex], ...target } as T;
+  return nextItems;
+}
+
+function mergeCulturalItem(state: AppState, event: SyncEvent): AppState {
+  const target = (event.payload ?? {}) as Partial<CulturalChecklistItem> & { id?: string; weddingId?: string; itemId?: string };
+  const targetId = target.id ?? target.itemId;
+  if (!targetId || !target.weddingId) return state;
+  return {
+    ...state,
+    weddings: state.weddings.map((wedding) => {
+      if (wedding.id !== target.weddingId) return wedding;
+      if (event.operation === "DELETE") {
+        return {
+          ...wedding,
+          culturalChecklist: wedding.culturalChecklist.filter((item) => item.id !== targetId)
+        };
+      }
+      const item: CulturalChecklistItem = {
+        id: targetId,
+        label: target.label ?? "",
+        culture: target.culture ?? "",
+        owner: target.owner ?? "",
+        status: target.status ?? "TODO",
+        linkedTaskIds: target.linkedTaskIds ?? []
+      };
+      const exists = wedding.culturalChecklist.some((entry) => entry.id === targetId);
+      return {
+        ...wedding,
+        culturalChecklist: exists
+          ? wedding.culturalChecklist.map((entry) => (entry.id === targetId ? { ...entry, ...item } : entry))
+          : [...wedding.culturalChecklist, item]
+      };
+    })
+  };
+}
+
 function mergePlannerProfile(state: AppState, event: SyncEvent): AppState {
   if (event.operation === "DELETE") {
     return state;
@@ -401,6 +460,21 @@ function applyRemoteEvents(state: AppState, events: SyncEvent[], syncStore: Sync
         break;
       case "planner_meta":
         nextState = mergePlannerMeta(nextState, event);
+        break;
+      case "vendor":
+        nextState = { ...nextState, vendors: mergeArrayEntity<Vendor>(nextState.vendors, event) };
+        break;
+      case "venue":
+        nextState = { ...nextState, venues: mergeArrayEntity<Venue>(nextState.venues, event) };
+        break;
+      case "destination":
+        nextState = { ...nextState, destinations: mergeArrayEntity<DestinationProfile>(nextState.destinations, event) };
+        break;
+      case "cultural_item":
+        nextState = mergeCulturalItem(nextState, event);
+        break;
+      case "client_approval":
+        nextState = { ...nextState, clientApprovals: mergeArrayEntity<ClientApproval>(nextState.clientApprovals, event) };
         break;
       default:
         break;

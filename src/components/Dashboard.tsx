@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AppState, ImpactRow, ReadinessArea } from "@/lib/types";
+import type { ClientApprovalDraft, CulturalChecklistDraft, DestinationDraft, VendorDraft, VenueDraft } from "@/lib/repository";
 import { SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
 import {
@@ -32,6 +33,16 @@ interface DashboardProps {
   onImportPackage: (raw: string) => Promise<SyncImportResult>;
   onClearSync: () => void;
   onResetWorkspace: () => void;
+  onUpsertVendor: (draft: VendorDraft) => void;
+  onDeleteVendor: (id: string) => void;
+  onUpsertVenue: (draft: VenueDraft) => void;
+  onDeleteVenue: (id: string) => void;
+  onUpsertDestination: (draft: DestinationDraft) => void;
+  onDeleteDestination: (id: string) => void;
+  onUpsertCulturalChecklistItem: (draft: CulturalChecklistDraft) => void;
+  onDeleteCulturalChecklistItem: (payload: { weddingId: string; itemId: string }) => void;
+  onUpsertClientApproval: (draft: ClientApprovalDraft) => void;
+  onDeleteClientApproval: (id: string) => void;
   syncError?: string;
   importPackageError?: unknown;
   isLoadingTasks: boolean;
@@ -86,6 +97,16 @@ export default function Dashboard({
   onImportPackage,
   onClearSync,
   onResetWorkspace,
+  onUpsertVendor,
+  onDeleteVendor,
+  onUpsertVenue,
+  onDeleteVenue,
+  onUpsertDestination,
+  onDeleteDestination,
+  onUpsertCulturalChecklistItem,
+  onDeleteCulturalChecklistItem,
+  onUpsertClientApproval,
+  onDeleteClientApproval,
   syncError,
   importPackageError,
   isLoadingTasks
@@ -98,6 +119,11 @@ export default function Dashboard({
   const [plannerIdInput, setPlannerIdInput] = useState("");
   const [endpointInput, setEndpointInput] = useState("");
   const [packageStatus, setPackageStatus] = useState("");
+  const [vendorName, setVendorName] = useState("");
+  const [venueName, setVenueName] = useState("");
+  const [destinationName, setDestinationName] = useState("");
+  const [cultureLabel, setCultureLabel] = useState("");
+  const [approvalTitle, setApprovalTitle] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -130,6 +156,10 @@ export default function Dashboard({
   const cultureDone = selected.culturalChecklist.filter((item) => item.status === "DONE").length;
   const cultureProgress =
     selected.culturalChecklist.length > 0 ? (cultureDone / selected.culturalChecklist.length) * 100 : 0;
+  const selectedVendors = state.vendors.filter((vendor) => vendor.weddingId === selected.id);
+  const selectedVenues = state.venues.filter((venue) => venue.weddingId === selected.id);
+  const selectedDestinations = state.destinations.filter((destination) => destination.weddingId === selected.id);
+  const selectedApprovals = state.clientApprovals.filter((approval) => approval.weddingId === selected.id);
 
   const impactRows: ImpactRow[] = [
     {
@@ -254,6 +284,84 @@ export default function Dashboard({
 
     reader.readAsText(file);
     event.currentTarget.value = "";
+  }
+
+  function addVendor() {
+    const name = vendorName.trim();
+    if (!name) return;
+    onUpsertVendor({
+      weddingId: selected.id,
+      name,
+      category: "OTHER",
+      owner: "Planner",
+      status: "LEAD",
+      estimate: 0,
+      currency: selected.currency,
+      linkedTaskIds: [],
+      notes: "New vendor lead."
+    });
+    setVendorName("");
+  }
+
+  function addVenue() {
+    const name = venueName.trim();
+    if (!name) return;
+    onUpsertVenue({
+      weddingId: selected.id,
+      name,
+      city: selected.destination.split(",")[0]?.trim() || "City",
+      country: selected.destination.split(",")[1]?.trim() || "Country",
+      status: "SHORTLISTED",
+      capacity: selected.guestTarget,
+      curfew: "TBD",
+      linkedTaskIds: [],
+      notes: "New venue option."
+    });
+    setVenueName("");
+  }
+
+  function addDestination() {
+    const name = destinationName.trim();
+    if (!name) return;
+    onUpsertDestination({
+      weddingId: selected.id,
+      name,
+      region: "Global",
+      travelRisk: "MEDIUM",
+      visaNotes: "Confirm visa and passport requirements.",
+      weatherNotes: "Add seasonal weather guidance.",
+      culturalNotes: "Add guest cultural briefing.",
+      linkedTaskIds: []
+    });
+    setDestinationName("");
+  }
+
+  function addCultureItem() {
+    const label = cultureLabel.trim();
+    if (!label) return;
+    onUpsertCulturalChecklistItem({
+      weddingId: selected.id,
+      label,
+      culture: selected.type.replace(/_/g, " ").toLowerCase(),
+      owner: "Client Experience",
+      status: "TODO",
+      linkedTaskIds: []
+    });
+    setCultureLabel("");
+  }
+
+  function addApproval() {
+    const title = approvalTitle.trim();
+    if (!title) return;
+    onUpsertClientApproval({
+      weddingId: selected.id,
+      title,
+      owner: state.profile.name,
+      state: "DRAFT",
+      dueAt: selected.date,
+      linkedTaskIds: []
+    });
+    setApprovalTitle("");
   }
 
   const columns = useMemo<ColumnDef<(typeof selectedTasks)[number], unknown>[]>(
@@ -661,6 +769,128 @@ export default function Dashboard({
             <strong>{Math.round(selected.guestTarget * 0.45)} rooms</strong>
           </div>
         </article>
+      </section>
+
+      <section className="panel card crud-panel" aria-label="Operational records">
+        <div className="section-header">
+          <div>
+            <h3>Operational records</h3>
+            <p className="note">Create and maintain the live vendor, venue, destination, culture, and approval records for this wedding.</p>
+          </div>
+          <span className="sync-chip">{selectedVendors.length + selectedVenues.length + selectedDestinations.length + selectedApprovals.length} records</span>
+        </div>
+
+        <div className="crud-grid">
+          <article className="crud-card">
+            <h4>Vendors</h4>
+            <div className="inline-create">
+              <input value={vendorName} onChange={(e) => setVendorName(e.target.value)} placeholder="Add vendor" aria-label="Add vendor" />
+              <button className="btn btn-soft" onClick={addVendor}>Add</button>
+            </div>
+            <div className="record-list">
+              {selectedVendors.map((vendor) => (
+                <div key={vendor.id} className="record-row">
+                  <div>
+                    <strong>{vendor.name}</strong>
+                    <p>{vendor.category.replace("_", " ")} · {vendor.owner} · {currency(vendor.estimate, vendor.currency)}</p>
+                  </div>
+                  <div className="record-actions">
+                    <button className="btn btn-ghost" onClick={() => onUpsertVendor({ ...vendor, status: vendor.status === "CONTRACTED" ? "PAID" : "CONTRACTED" })}>Advance</button>
+                    <button className="btn btn-danger" onClick={() => onDeleteVendor(vendor.id)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="crud-card">
+            <h4>Venues</h4>
+            <div className="inline-create">
+              <input value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="Add venue" aria-label="Add venue" />
+              <button className="btn btn-soft" onClick={addVenue}>Add</button>
+            </div>
+            <div className="record-list">
+              {selectedVenues.map((venue) => (
+                <div key={venue.id} className="record-row">
+                  <div>
+                    <strong>{venue.name}</strong>
+                    <p>{venue.city}, {venue.country} · {venue.status.replace("_", " ")} · cap {venue.capacity}</p>
+                  </div>
+                  <div className="record-actions">
+                    <button className="btn btn-ghost" onClick={() => onUpsertVenue({ ...venue, status: venue.status === "READY" ? "HOLD" : "READY" })}>Ready</button>
+                    <button className="btn btn-danger" onClick={() => onDeleteVenue(venue.id)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="crud-card">
+            <h4>Destinations</h4>
+            <div className="inline-create">
+              <input value={destinationName} onChange={(e) => setDestinationName(e.target.value)} placeholder="Add destination profile" aria-label="Add destination" />
+              <button className="btn btn-soft" onClick={addDestination}>Add</button>
+            </div>
+            <div className="record-list">
+              {selectedDestinations.map((destination) => (
+                <div key={destination.id} className="record-row">
+                  <div>
+                    <strong>{destination.name}</strong>
+                    <p>{destination.region} · travel risk {destination.travelRisk}</p>
+                  </div>
+                  <div className="record-actions">
+                    <button className="btn btn-ghost" onClick={() => onUpsertDestination({ ...destination, travelRisk: destination.travelRisk === "LOW" ? "MEDIUM" : "LOW" })}>Toggle risk</button>
+                    <button className="btn btn-danger" onClick={() => onDeleteDestination(destination.id)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="crud-card">
+            <h4>Culture</h4>
+            <div className="inline-create">
+              <input value={cultureLabel} onChange={(e) => setCultureLabel(e.target.value)} placeholder="Add cultural checklist item" aria-label="Add cultural checklist item" />
+              <button className="btn btn-soft" onClick={addCultureItem}>Add</button>
+            </div>
+            <div className="record-list">
+              {selected.culturalChecklist.map((item) => (
+                <div key={item.id} className="record-row">
+                  <div>
+                    <strong>{item.label}</strong>
+                    <p>{item.culture} · {item.owner} · {item.status.replace("_", " ")}</p>
+                  </div>
+                  <div className="record-actions">
+                    <button className="btn btn-ghost" onClick={() => onUpsertCulturalChecklistItem({ weddingId: selected.id, ...item, status: item.status === "DONE" ? "TODO" : "DONE" })}>Toggle</button>
+                    <button className="btn btn-danger" onClick={() => onDeleteCulturalChecklistItem({ weddingId: selected.id, itemId: item.id })}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="crud-card">
+            <h4>Client approvals</h4>
+            <div className="inline-create">
+              <input value={approvalTitle} onChange={(e) => setApprovalTitle(e.target.value)} placeholder="Add client approval" aria-label="Add client approval" />
+              <button className="btn btn-soft" onClick={addApproval}>Add</button>
+            </div>
+            <div className="record-list">
+              {selectedApprovals.map((approval) => (
+                <div key={approval.id} className="record-row">
+                  <div>
+                    <strong>{approval.title}</strong>
+                    <p>{approval.owner} · {approval.state.replace("_", " ")} · {formatDate(approval.dueAt, selected.timezone)}</p>
+                  </div>
+                  <div className="record-actions">
+                    <button className="btn btn-ghost" onClick={() => onUpsertClientApproval({ ...approval, state: approval.state === "APPROVED" ? "CLIENT_REVIEW" : "APPROVED" })}>Approve</button>
+                    <button className="btn btn-danger" onClick={() => onDeleteClientApproval(approval.id)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        </div>
       </section>
 
       <section className="grid two equal">

@@ -8,6 +8,9 @@ export type ImpactArea = "GUESTS" | "BUDGET" | "VENDORS" | "TIMELINE" | "LOGISTI
 export type ReadinessArea = "VENDOR" | "VENUE" | "DESTINATION";
 export type ReadinessStatus = "READY" | "WATCH" | "BLOCKED";
 export type ClientApprovalState = "DRAFT" | "CLIENT_REVIEW" | "APPROVED" | "ESCALATION";
+export type VendorCategory = "CATERING" | "DECOR" | "PHOTO_VIDEO" | "MUSIC" | "LOGISTICS" | "BEAUTY" | "OTHER";
+export type VendorStatus = "LEAD" | "QUOTED" | "CONTRACTED" | "PAID" | "AT_RISK";
+export type VenueStatus = "SHORTLISTED" | "HOLD" | "CONTRACTED" | "PERMIT_PENDING" | "READY";
 
 export interface PlannerSettings {
   baseCurrency: string;
@@ -85,6 +88,54 @@ export interface CulturalChecklistItem {
   linkedTaskIds: string[];
 }
 
+export interface Vendor {
+  id: string;
+  weddingId: string;
+  name: string;
+  category: VendorCategory;
+  owner: string;
+  status: VendorStatus;
+  estimate: number;
+  currency: string;
+  linkedTaskIds: string[];
+  notes: string;
+}
+
+export interface Venue {
+  id: string;
+  weddingId: string;
+  name: string;
+  city: string;
+  country: string;
+  status: VenueStatus;
+  capacity: number;
+  curfew: string;
+  linkedTaskIds: string[];
+  notes: string;
+}
+
+export interface DestinationProfile {
+  id: string;
+  weddingId: string;
+  name: string;
+  region: string;
+  travelRisk: "LOW" | "MEDIUM" | "HIGH";
+  visaNotes: string;
+  weatherNotes: string;
+  culturalNotes: string;
+  linkedTaskIds: string[];
+}
+
+export interface ClientApproval {
+  id: string;
+  weddingId: string;
+  title: string;
+  owner: string;
+  state: ClientApprovalState;
+  dueAt: string;
+  linkedTaskIds: string[];
+}
+
 export interface ClientStatusSummary {
   relationshipOwner: string;
   approvalState: ClientApprovalState;
@@ -120,6 +171,10 @@ export interface AppState {
   settings: PlannerSettings;
   weddings: Wedding[];
   tasks: Task[];
+  vendors: Vendor[];
+  venues: Venue[];
+  destinations: DestinationProfile[];
+  clientApprovals: ClientApproval[];
   activeWeddingId: string;
   onboarded: boolean;
 }
