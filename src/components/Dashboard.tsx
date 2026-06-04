@@ -847,7 +847,7 @@ export default function Dashboard({
           <span className="sync-chip">{state.users.length} users · {state.invites.length} invites</span>
         </div>
         <div className="inline-create">
-          <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Invite team or portal user" aria-label="Invite email" />
+          <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="Invite team or portal user" aria-label="Invite team member" />
           <button className="btn btn-soft" onClick={addInvite}>Send invite</button>
         </div>
         <div className="team-grid">
