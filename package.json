@@ -7,7 +7,9 @@
   "main": "desktop/main.cjs",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/write-build-info.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/write-build-info.mjs",
     "build": "next build",
     "start": "next start",
     "phase6:pilot": "node scripts/phase6-controlled-pilot.mjs",
@@ -17,11 +19,15 @@
     "phase6:pilot:local": "APP_HOST=127.0.0.1 APP_PORT=3002 WOVOPS_APP_URL=http://127.0.0.1:3002 WOVOPS_PILOT_SKIP_IPV6=true WOVOPS_PILOT_SKIP_PRECHECK=true WOVOPS_PILOT_ALLOW_HOST_ALIASES=false WOVOPS_PILOT_FORCE_IPV4_LOOPBACK=true node scripts/phase6-controlled-pilot.mjs",
     "phase6:pilot:remote": "bash scripts/run-phase6-remote.sh",
     "phase6:pilot:deterministic": "node scripts/deterministic-pilot.mjs",
+    "qa:render:visual": "node scripts/render-visual-qa.mjs",
     "railway:deploy": "bash scripts/run-railway-deploy.sh",
     "sync:relay:prototype": "node sync-relay/prototype-server.mjs",
+    "sync:relay:smoke": "node scripts/smoke-sync-relay.mjs",
     "phase7:desktop:launch": "BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3002 node scripts/run-desktop.mjs",
     "phase7:desktop:smoke": "BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3090 BLISS_DESKTOP_SMOKE_TEST=true node scripts/run-desktop.mjs",
-    "phase7:desktop:package": "node scripts/package-desktop.mjs"
+    "phase7:desktop:package": "node scripts/package-desktop.mjs",
+    "phase7:desktop:package:signed": "node scripts/package-desktop-signed.mjs",
+    "phase7:desktop:package:win-smoke": "node scripts/package-windows-smoke.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.9",

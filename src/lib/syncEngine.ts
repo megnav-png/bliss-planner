@@ -84,6 +84,21 @@ export interface SyncImportResult {
   state?: AppState;
 }
 
+export interface DevicePairingResult {
+  ok: boolean;
+  workspaceId?: string;
+  pairingCode?: string;
+  expiresAt?: string;
+  error?: string;
+}
+
+export interface DeleteRelayWorkspaceResult {
+  ok: boolean;
+  workspaceId?: string;
+  deleted?: boolean;
+  error?: string;
+}
+
 interface SyncPackageFile {
   schema: "wovops-v1";
   exportedAt: string;
@@ -99,6 +114,7 @@ interface SyncPackageFile {
 interface SyncPushPayload {
   deviceId: string;
   plannerId?: string;
+  workspaceId?: string;
   changes: Array<{
     id: string;
     revision: number;
@@ -189,6 +205,10 @@ function saveSyncStore(state: SyncStore) {
 
 function entityKey(entity: SyncEntity, entityId: string) {
   return `${entity}:${entityId}`;
+}
+
+function syncWorkspaceId(syncStore: SyncStore) {
+  return syncStore.plannerId?.trim() || syncStore.deviceId || "default-workspace";
 }
 
 export function getSyncDiagnostics(): SyncDiagnostics {
@@ -502,6 +522,7 @@ async function pushChanges(
   const payload: SyncPushPayload = {
     deviceId: syncStore.deviceId,
     plannerId: syncStore.plannerId,
+    workspaceId: syncWorkspaceId(syncStore),
     changes: pending.map((event) => ({
       id: event.id,
       revision: event.revision,
@@ -550,6 +571,7 @@ async function pullChanges(syncStore: SyncStore): Promise<{ status: "success" | 
 
   const query = new URLSearchParams({
     deviceId: syncStore.deviceId,
+    workspaceId: syncWorkspaceId(syncStore),
     since: String(syncStore.lastRemoteRevision)
   });
   const endpoint = syncStore.endpoint.replace(/\/$/, "");
@@ -756,4 +778,56 @@ export function clearSyncedStore() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(SYNC_STORAGE_KEY);
   window.localStorage.removeItem(SYNC_PACKAGE_KEY);
+}
+
+export async function startDevicePairing(deviceName = "New trusted device"): Promise<DevicePairingResult> {
+  const syncStore = readSyncStore();
+  if (!syncStore.endpoint) {
+    return { ok: false, error: "No sync endpoint configured." };
+  }
+
+  try {
+    const endpoint = syncStore.endpoint.replace(/\/$/, "");
+    const response = await fetch(`${endpoint}/devices/pair/start`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        workspaceId: syncWorkspaceId(syncStore),
+        deviceId: syncStore.deviceId,
+        deviceName
+      })
+    });
+
+    const payload = (await response.json().catch(() => null)) as DevicePairingResult | null;
+    if (!response.ok || !payload?.ok) {
+      return { ok: false, error: payload?.error || `Pairing request failed (${response.status}).` };
+    }
+    return payload;
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Device pairing failed." };
+  }
+}
+
+export async function deleteRelayWorkspace(): Promise<DeleteRelayWorkspaceResult> {
+  const syncStore = readSyncStore();
+  if (!syncStore.endpoint) {
+    return { ok: false, error: "No sync endpoint configured." };
+  }
+
+  try {
+    const endpoint = syncStore.endpoint.replace(/\/$/, "");
+    const query = new URLSearchParams({ workspaceId: syncWorkspaceId(syncStore) });
+    const response = await fetch(`${endpoint}/sync/workspace?${query.toString()}`, { method: "DELETE" });
+    const payload = (await response.json().catch(() => null)) as DeleteRelayWorkspaceResult | null;
+    if (!response.ok || !payload?.ok) {
+      return { ok: false, error: payload?.error || `Delete request failed (${response.status}).` };
+    }
+    syncStore.lastRemoteRevision = 0;
+    syncStore.syncStatus = "idle";
+    syncStore.lastSyncError = undefined;
+    saveSyncStore(syncStore);
+    return payload;
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not delete cloud relay data." };
+  }
 }

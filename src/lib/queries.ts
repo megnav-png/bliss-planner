@@ -6,6 +6,7 @@ import {
   deleteDestination,
   deleteVendor,
   deleteVenue,
+  deletePlannerRelayWorkspace,
   exportPlannerSyncPackage,
   getPlannerState,
   getPlannerSyncDiagnostics,
@@ -17,6 +18,7 @@ import {
   setPlannerIdentity,
   setSyncEndpointUrl,
   setSyncMode,
+  startPlannerDevicePairing,
   clearPlannerSyncState,
   toggleTask,
   updateGuestTarget,
@@ -32,7 +34,7 @@ import {
   VenueDraft
 } from "./repository";
 import { AppState } from "./types";
-import type { SyncDiagnostics, SyncRunSummary } from "./syncEngine";
+import type { DeleteRelayWorkspaceResult, DevicePairingResult, SyncDiagnostics, SyncRunSummary } from "./syncEngine";
 
 export const plannerQueryKeys = {
   all: ["planner"] as const,
@@ -221,6 +223,22 @@ export function useClearPlannerSyncState() {
     mutationFn: () => clearPlannerSyncState(),
     onSuccess: (diagnostics: SyncDiagnostics) => {
       queryClient.setQueryData(plannerQueryKeys.sync.diagnostics(), diagnostics);
+    }
+  });
+}
+
+export function useStartDevicePairing() {
+  return useMutation({
+    mutationFn: () => startPlannerDevicePairing()
+  });
+}
+
+export function useDeleteRelayWorkspace() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => deletePlannerRelayWorkspace(),
+    onSuccess: (_result: DeleteRelayWorkspaceResult | DevicePairingResult) => {
+      void queryClient.invalidateQueries({ queryKey: plannerQueryKeys.sync.diagnostics() });
     }
   });
 }

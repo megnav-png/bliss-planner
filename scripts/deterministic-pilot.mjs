@@ -234,6 +234,7 @@ try {
 
   await page.goto(APP_URL, { waitUntil: "domcontentloaded", timeout: 20_000 });
   await page.getByRole("heading", { name: "Bliss Planner Dashboard" }).waitFor({ timeout: 20_000 });
+  await page.getByTestId("deploy-version-marker").waitFor({ timeout: 10_000 });
   addResult("Dashboard render", "PASS", "Dashboard mounted from deterministic local state.");
 
   const requiredText = [
@@ -262,6 +263,14 @@ try {
   await waitForStoredState(page, "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals')");
   await page.getByLabel("Operational records").getByText("Pilot Florals").first().waitFor({ timeout: 10_000 });
   addResult("Vendor CRUD", "PASS", "Vendor create flow added a new vendor record.");
+
+  await page.locator(".crud-card:has(h4:has-text('Vendors')) .record-row:has-text('Pilot Florals') button:has-text('Edit')").click();
+  await page.getByLabel("Record detail drawer").waitFor({ timeout: 10_000 });
+  await page.getByLabel("Record detail drawer").getByLabel("Vendor name").fill("Pilot Florals Studio");
+  await page.getByTestId("save-record-detail").click();
+  await waitForStoredState(page, "state => state.vendors?.some(vendor => vendor.name === 'Pilot Florals Studio')");
+  await page.getByLabel("Operational records").getByText("Pilot Florals Studio").first().waitFor({ timeout: 10_000 });
+  addResult("Record detail drawer", "PASS", "Vendor detail drawer edited and saved a record.");
 
   await page.getByRole("textbox", { name: "Add client approval" }).fill("Final music approval");
   await page.locator(".crud-card:has(h4:has-text('Client approvals')) button:has-text('Add')").click();

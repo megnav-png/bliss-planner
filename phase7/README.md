@@ -11,12 +11,16 @@ This phase introduces a desktop execution wrapper and formal release path.
   Launches Electron in smoke-test mode, confirms the local app loads, then exits.
 - **Packaging script** (`scripts/package-desktop.mjs`)  
   Builds web artifacts and runs `electron-builder` using the export profile.
+- **Signed macOS packaging preflight** (`scripts/package-desktop-signed.mjs`)  
+  Builds with hardened runtime/notarization settings when Apple Developer credentials and signing identity are available.
+- **Windows packaging smoke** (`scripts/package-windows-smoke.mjs`)  
+  Runs a cross-platform `electron-builder --win --dir` packaging check.
 - **Export profile** (`phase7/desktop-export-profile.json`)  
   Defines package IDs, output targets, icons, artifact names, and OS targets.
 - **Sync backend architecture** (`phase7/SYNC_BACKEND_ARCHITECTURE.md`)  
   Defines the optional encrypted relay approach for cross-device continuity without storing readable planner data.
 - **Encrypted relay prototype** (`sync-relay/prototype-server.mjs`)  
-  Provides a local AES-256-GCM at-rest push/pull relay for validating the sync contract before choosing hosted infrastructure.
+  Provides a persistent local AES-256-GCM at-rest push/pull relay with optional bearer auth, device pairing, workspace scoping, and delete-cloud-data.
 - **Release/Install docs** (`phase7/INSTALL_DESKTOP.md`, `phase7/RELEASE_CHECKLIST.md`)
 
 ## Quick commands
@@ -34,7 +38,23 @@ This phase introduces a desktop execution wrapper and formal release path.
   ```
 - Run local encrypted relay prototype:
   ```bash
-  BLISS_RELAY_SECRET=dev-secret npm run sync:relay:prototype
+  BLISS_RELAY_SECRET=dev-secret BLISS_RELAY_TOKEN=dev-token npm run sync:relay:prototype
+  ```
+- Validate local relay flow:
+  ```bash
+  BLISS_RELAY_TOKEN=dev-token npm run sync:relay:smoke
+  ```
+- Run Render visual QA checklist:
+  ```bash
+  BLISS_APP_URL=https://bliss-planner.onrender.com npm run qa:render:visual
+  ```
+- Run Windows packaging smoke:
+  ```bash
+  npm run phase7:desktop:package:win-smoke
+  ```
+- Run signed/notarized macOS packaging:
+  ```bash
+  APPLE_ID=... APPLE_APP_SPECIFIC_PASSWORD=... APPLE_TEAM_ID=... CSC_LINK=... CSC_KEY_PASSWORD=... npm run phase7:desktop:package:signed
   ```
 
 ## Rollback

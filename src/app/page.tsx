@@ -19,7 +19,9 @@ import {
   useDeleteDestination,
   useDeleteVendor,
   useDeleteVenue,
+  useDeleteRelayWorkspace,
   useResetPlannerState,
+  useStartDevicePairing,
   useSyncDiagnostics,
   useToggleTask,
   useUpdateGuestTarget,
@@ -45,6 +47,8 @@ export default function HomePage() {
   const exportPackageMutation = useExportSyncPackage();
   const importPackageMutation = useImportSyncPackage();
   const clearSyncMutation = useClearPlannerSyncState();
+  const startDevicePairingMutation = useStartDevicePairing();
+  const deleteRelayWorkspaceMutation = useDeleteRelayWorkspace();
   const resetPlannerStateMutation = useResetPlannerState();
   const upsertVendorMutation = useUpsertVendor();
   const deleteVendorMutation = useDeleteVendor();
@@ -139,6 +143,12 @@ export default function HomePage() {
       onClearSync={() => {
         void clearSyncMutation.mutateAsync();
       }}
+      onStartDevicePairing={() => startDevicePairingMutation.mutateAsync()}
+      pairingResult={startDevicePairingMutation.data}
+      pairingError={startDevicePairingMutation.error}
+      onDeleteRelayWorkspace={() => deleteRelayWorkspaceMutation.mutateAsync()}
+      deleteRelayResult={deleteRelayWorkspaceMutation.data}
+      deleteRelayError={deleteRelayWorkspaceMutation.error}
       onResetWorkspace={() => {
         setLocalStateOverride(null);
         void resetPlannerStateMutation.mutateAsync();

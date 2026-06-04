@@ -3,6 +3,8 @@ import { seedState } from "./fakeData";
 import { loadPersistedState, saveState } from "./storage";
 import {
   clearSyncedStore,
+  deleteRelayWorkspace,
+  DeleteRelayWorkspaceResult,
   exportSyncPackage as exportSyncStatePackage,
   getSyncDiagnostics,
   importSyncPackage as importSyncStatePackage,
@@ -10,6 +12,8 @@ import {
   runSync,
   setPlannerId,
   setSyncEndpoint,
+  startDevicePairing,
+  DevicePairingResult,
   SyncDiagnostics,
   SyncImportResult,
   SyncRunSummary
@@ -514,6 +518,14 @@ export async function importPlannerSyncPackage(raw: string): Promise<SyncImportR
 export async function clearPlannerSyncState(): Promise<SyncDiagnostics> {
   clearSyncedStore();
   return getSyncDiagnostics();
+}
+
+export async function startPlannerDevicePairing(): Promise<DevicePairingResult> {
+  return startDevicePairing("Bliss Planner trusted device");
+}
+
+export async function deletePlannerRelayWorkspace(): Promise<DeleteRelayWorkspaceResult> {
+  return deleteRelayWorkspace();
 }
 
 export async function resetPlannerState(): Promise<AppState> {

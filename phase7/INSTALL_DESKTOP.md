@@ -66,6 +66,27 @@ BLISS_ELECTRON_BUILDER="electron-builder@24.13.3" npm run phase7:desktop:package
 Artifacts are created in:
 - `release/BlissPlanner-...` and `BlissPlanner-...`
 
+## Signed macOS package and notarization
+Unsigned local packages are suitable for internal QA only. Public macOS distribution needs Apple Developer ID signing and notarization:
+
+```bash
+APPLE_ID="you@example.com" \
+APPLE_APP_SPECIFIC_PASSWORD="app-specific-password" \
+APPLE_TEAM_ID="TEAMID1234" \
+CSC_LINK="/absolute/path/to/developer-id-cert.p12" \
+CSC_KEY_PASSWORD="certificate-password" \
+npm run phase7:desktop:package:signed
+```
+
+You can also use `CSC_NAME` when the Developer ID Application certificate is installed in the macOS keychain.
+
+## Windows smoke package
+```bash
+npm run phase7:desktop:package:win-smoke
+```
+
+On macOS, this validates the Windows builder configuration as far as local tooling allows. If it fails because Wine or Windows icon tooling is missing, rerun on a Windows build machine before public release.
+
 ## Notes for your first release
 - For internal pilot, keep signing off and distribute the `.dmg`/`.exe` directly.
 - For public release, add signing credentials and auto-update feed before running publish.

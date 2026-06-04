@@ -1,9 +1,19 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, ImpactRow, ReadinessArea } from "@/lib/types";
+import {
+  AppState,
+  ClientApprovalState,
+  ImpactRow,
+  ReadinessArea,
+  TaskStatus,
+  VendorCategory,
+  VendorStatus,
+  VenueStatus
+} from "@/lib/types";
 import type { ClientApprovalDraft, CulturalChecklistDraft, DestinationDraft, VendorDraft, VenueDraft } from "@/lib/repository";
-import { SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
+import { DeleteRelayWorkspaceResult, DevicePairingResult, SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
+import { buildInfo, shortCommit } from "@/lib/buildInfo";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
 import {
   SortingState,
@@ -32,6 +42,12 @@ interface DashboardProps {
   onExportPackage: () => Promise<string>;
   onImportPackage: (raw: string) => Promise<SyncImportResult>;
   onClearSync: () => void;
+  onStartDevicePairing: () => Promise<DevicePairingResult>;
+  pairingResult?: DevicePairingResult;
+  pairingError?: unknown;
+  onDeleteRelayWorkspace: () => Promise<DeleteRelayWorkspaceResult>;
+  deleteRelayResult?: DeleteRelayWorkspaceResult;
+  deleteRelayError?: unknown;
   onResetWorkspace: () => void;
   onUpsertVendor: (draft: VendorDraft) => void;
   onDeleteVendor: (id: string) => void;
@@ -80,6 +96,10 @@ const readinessLabels: Record<ReadinessArea, string> = {
   DESTINATION: "Destination readiness"
 };
 
+type EditKind = "vendor" | "venue" | "destination" | "culture" | "approval";
+
+type EditDraft = Record<string, string>;
+
 export default function Dashboard({
   state,
   onGuestTargetChange,
@@ -96,6 +116,12 @@ export default function Dashboard({
   onExportPackage,
   onImportPackage,
   onClearSync,
+  onStartDevicePairing,
+  pairingResult,
+  pairingError,
+  onDeleteRelayWorkspace,
+  deleteRelayResult,
+  deleteRelayError,
   onResetWorkspace,
   onUpsertVendor,
   onDeleteVendor,
@@ -124,6 +150,8 @@ export default function Dashboard({
   const [destinationName, setDestinationName] = useState("");
   const [cultureLabel, setCultureLabel] = useState("");
   const [approvalTitle, setApprovalTitle] = useState("");
+  const [editKind, setEditKind] = useState<EditKind | null>(null);
+  const [editDraft, setEditDraft] = useState<EditDraft>({});
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -236,6 +264,12 @@ export default function Dashboard({
         ? "Could not import package."
         : "";
   const canRunSync = Boolean(syncDiagnostics?.endpoint) && !syncIsRunning;
+  const relayActionError =
+    pairingError instanceof Error
+      ? pairingError.message
+      : deleteRelayError instanceof Error
+        ? deleteRelayError.message
+        : pairingResult?.error || deleteRelayResult?.error || "";
   const productHome = "/";
   const marketingHome = "https://www.playoramusic.com";
 
@@ -364,6 +398,122 @@ export default function Dashboard({
     setApprovalTitle("");
   }
 
+  function openEditor(kind: EditKind, draft: EditDraft) {
+    setEditKind(kind);
+    setEditDraft(draft);
+  }
+
+  function closeEditor() {
+    setEditKind(null);
+    setEditDraft({});
+  }
+
+  function updateEditDraft(field: string, value: string) {
+    setEditDraft((current) => ({ ...current, [field]: value }));
+  }
+
+  function saveEditedRecord() {
+    if (!editKind) return;
+    const id = editDraft.id;
+    const weddingId = editDraft.weddingId || selected.id;
+
+    if (editKind === "vendor") {
+      const existing = selectedVendors.find((vendor) => vendor.id === id);
+      onUpsertVendor({
+        id,
+        weddingId,
+        name: editDraft.name?.trim() || existing?.name || "Vendor",
+        category: (editDraft.category || existing?.category || "OTHER") as VendorCategory,
+        owner: editDraft.owner?.trim() || existing?.owner || "Planner",
+        status: (editDraft.status || existing?.status || "LEAD") as VendorStatus,
+        estimate: Number(editDraft.estimate || existing?.estimate || 0),
+        currency: editDraft.currency?.trim() || existing?.currency || selected.currency,
+        linkedTaskIds: existing?.linkedTaskIds ?? [],
+        notes: editDraft.notes?.trim() || existing?.notes || ""
+      });
+    }
+
+    if (editKind === "venue") {
+      const existing = selectedVenues.find((venue) => venue.id === id);
+      onUpsertVenue({
+        id,
+        weddingId,
+        name: editDraft.name?.trim() || existing?.name || "Venue",
+        city: editDraft.city?.trim() || existing?.city || "City",
+        country: editDraft.country?.trim() || existing?.country || "Country",
+        status: (editDraft.status || existing?.status || "SHORTLISTED") as VenueStatus,
+        capacity: Number(editDraft.capacity || existing?.capacity || selected.guestTarget),
+        curfew: editDraft.curfew?.trim() || existing?.curfew || "TBD",
+        linkedTaskIds: existing?.linkedTaskIds ?? [],
+        notes: editDraft.notes?.trim() || existing?.notes || ""
+      });
+    }
+
+    if (editKind === "destination") {
+      const existing = selectedDestinations.find((destination) => destination.id === id);
+      onUpsertDestination({
+        id,
+        weddingId,
+        name: editDraft.name?.trim() || existing?.name || "Destination profile",
+        region: editDraft.region?.trim() || existing?.region || "Global",
+        travelRisk: (editDraft.travelRisk || existing?.travelRisk || "MEDIUM") as "LOW" | "MEDIUM" | "HIGH",
+        visaNotes: editDraft.visaNotes?.trim() || existing?.visaNotes || "",
+        weatherNotes: editDraft.weatherNotes?.trim() || existing?.weatherNotes || "",
+        culturalNotes: editDraft.culturalNotes?.trim() || existing?.culturalNotes || "",
+        linkedTaskIds: existing?.linkedTaskIds ?? []
+      });
+    }
+
+    if (editKind === "culture") {
+      const existing = selected.culturalChecklist.find((item) => item.id === id);
+      onUpsertCulturalChecklistItem({
+        id,
+        weddingId,
+        label: editDraft.label?.trim() || existing?.label || "Cultural checklist item",
+        culture: editDraft.culture?.trim() || existing?.culture || "Global",
+        owner: editDraft.owner?.trim() || existing?.owner || "Client Experience",
+        status: (editDraft.status || existing?.status || "TODO") as TaskStatus,
+        linkedTaskIds: existing?.linkedTaskIds ?? []
+      });
+    }
+
+    if (editKind === "approval") {
+      const existing = selectedApprovals.find((approval) => approval.id === id);
+      onUpsertClientApproval({
+        id,
+        weddingId,
+        title: editDraft.title?.trim() || existing?.title || "Client approval",
+        owner: editDraft.owner?.trim() || existing?.owner || state.profile.name,
+        state: (editDraft.state || existing?.state || "DRAFT") as ClientApprovalState,
+        dueAt: editDraft.dueAt || existing?.dueAt || selected.date,
+        linkedTaskIds: existing?.linkedTaskIds ?? []
+      });
+    }
+
+    closeEditor();
+  }
+
+  async function handleStartDevicePairing() {
+    const result = await onStartDevicePairing();
+    if (!result.ok) {
+      setPackageStatus(result.error ?? "Could not start device pairing.");
+      return;
+    }
+    setPackageStatus(`Pairing code ${result.pairingCode} expires ${result.expiresAt ? formatDate(result.expiresAt, state.settings.timezone) : "soon"}.`);
+  }
+
+  async function handleDeleteRelayWorkspace() {
+    if (!window.confirm("Delete encrypted cloud relay data for this workspace? Local data remains on this device.")) {
+      return;
+    }
+    const result = await onDeleteRelayWorkspace();
+    if (!result.ok) {
+      setPackageStatus(result.error ?? "Could not delete cloud relay data.");
+      return;
+    }
+    setPackageStatus(result.deleted ? "Cloud relay data deleted for this workspace." : "No cloud relay workspace data was found.");
+  }
+
   const columns = useMemo<ColumnDef<(typeof selectedTasks)[number], unknown>[]>(
     () => [
       {
@@ -479,6 +629,9 @@ export default function Dashboard({
             <span className="sync-chip">
               {canRunSync ? "Endpoint set" : "Set sync endpoint"}
             </span>
+            <span className="deploy-chip" data-testid="deploy-version-marker">
+              {buildInfo.service} · v{buildInfo.version} · {shortCommit(buildInfo.commit)}
+            </span>
           </div>
         </div>
       </header>
@@ -569,6 +722,7 @@ export default function Dashboard({
           {diagnosticSummary.lastSyncError ? <p className="sync-error">{diagnosticSummary.lastSyncError}</p> : null}
           {syncError ? <p className="sync-error">{syncError}</p> : null}
           {importErrorText ? <p className="sync-error">{importErrorText}</p> : null}
+          {relayActionError ? <p className="sync-error">{relayActionError}</p> : null}
         </div>
 
         <div className="sync-controls">
@@ -624,6 +778,28 @@ export default function Dashboard({
                 Reset sync
               </button>
               </div>
+            </label>
+
+            <label className="sync-control-group">
+              Cloud relay controls
+              <div className="row-actions">
+                <button className="btn btn-soft" data-testid="start-device-pairing" onClick={() => void handleStartDevicePairing()}>
+                  Start pairing
+                </button>
+                <button className="btn btn-danger" data-testid="delete-cloud-relay-data" onClick={() => void handleDeleteRelayWorkspace()}>
+                  Delete cloud data
+                </button>
+              </div>
+              {pairingResult?.pairingCode ? (
+                <p className="note">
+                  Pairing code <strong>{pairingResult.pairingCode}</strong> expires {pairingResult.expiresAt ? formatDate(pairingResult.expiresAt, state.settings.timezone) : "soon"}.
+                </p>
+              ) : null}
+              {deleteRelayResult?.ok ? (
+                <p className="note">
+                  {deleteRelayResult.deleted ? "Cloud relay workspace deleted." : "No cloud relay data found."}
+                </p>
+              ) : null}
             </label>
 
             <label className="sync-control-group">
@@ -795,6 +971,24 @@ export default function Dashboard({
                     <p>{vendor.category.replace("_", " ")} · {vendor.owner} · {currency(vendor.estimate, vendor.currency)}</p>
                   </div>
                   <div className="record-actions">
+                    <button
+                      className="btn btn-soft"
+                      onClick={() =>
+                        openEditor("vendor", {
+                          id: vendor.id,
+                          weddingId: vendor.weddingId,
+                          name: vendor.name,
+                          category: vendor.category,
+                          owner: vendor.owner,
+                          status: vendor.status,
+                          estimate: String(vendor.estimate),
+                          currency: vendor.currency,
+                          notes: vendor.notes
+                        })
+                      }
+                    >
+                      Edit
+                    </button>
                     <button className="btn btn-ghost" onClick={() => onUpsertVendor({ ...vendor, status: vendor.status === "CONTRACTED" ? "PAID" : "CONTRACTED" })}>Advance</button>
                     <button className="btn btn-danger" onClick={() => onDeleteVendor(vendor.id)}>Delete</button>
                   </div>
@@ -817,6 +1011,24 @@ export default function Dashboard({
                     <p>{venue.city}, {venue.country} · {venue.status.replace("_", " ")} · cap {venue.capacity}</p>
                   </div>
                   <div className="record-actions">
+                    <button
+                      className="btn btn-soft"
+                      onClick={() =>
+                        openEditor("venue", {
+                          id: venue.id,
+                          weddingId: venue.weddingId,
+                          name: venue.name,
+                          city: venue.city,
+                          country: venue.country,
+                          status: venue.status,
+                          capacity: String(venue.capacity),
+                          curfew: venue.curfew,
+                          notes: venue.notes
+                        })
+                      }
+                    >
+                      Edit
+                    </button>
                     <button className="btn btn-ghost" onClick={() => onUpsertVenue({ ...venue, status: venue.status === "READY" ? "HOLD" : "READY" })}>Ready</button>
                     <button className="btn btn-danger" onClick={() => onDeleteVenue(venue.id)}>Delete</button>
                   </div>
@@ -839,6 +1051,23 @@ export default function Dashboard({
                     <p>{destination.region} · travel risk {destination.travelRisk}</p>
                   </div>
                   <div className="record-actions">
+                    <button
+                      className="btn btn-soft"
+                      onClick={() =>
+                        openEditor("destination", {
+                          id: destination.id,
+                          weddingId: destination.weddingId,
+                          name: destination.name,
+                          region: destination.region,
+                          travelRisk: destination.travelRisk,
+                          visaNotes: destination.visaNotes,
+                          weatherNotes: destination.weatherNotes,
+                          culturalNotes: destination.culturalNotes
+                        })
+                      }
+                    >
+                      Edit
+                    </button>
                     <button className="btn btn-ghost" onClick={() => onUpsertDestination({ ...destination, travelRisk: destination.travelRisk === "LOW" ? "MEDIUM" : "LOW" })}>Toggle risk</button>
                     <button className="btn btn-danger" onClick={() => onDeleteDestination(destination.id)}>Delete</button>
                   </div>
@@ -861,6 +1090,21 @@ export default function Dashboard({
                     <p>{item.culture} · {item.owner} · {item.status.replace("_", " ")}</p>
                   </div>
                   <div className="record-actions">
+                    <button
+                      className="btn btn-soft"
+                      onClick={() =>
+                        openEditor("culture", {
+                          id: item.id,
+                          weddingId: selected.id,
+                          label: item.label,
+                          culture: item.culture,
+                          owner: item.owner,
+                          status: item.status
+                        })
+                      }
+                    >
+                      Edit
+                    </button>
                     <button className="btn btn-ghost" onClick={() => onUpsertCulturalChecklistItem({ weddingId: selected.id, ...item, status: item.status === "DONE" ? "TODO" : "DONE" })}>Toggle</button>
                     <button className="btn btn-danger" onClick={() => onDeleteCulturalChecklistItem({ weddingId: selected.id, itemId: item.id })}>Delete</button>
                   </div>
@@ -883,6 +1127,21 @@ export default function Dashboard({
                     <p>{approval.owner} · {approval.state.replace("_", " ")} · {formatDate(approval.dueAt, selected.timezone)}</p>
                   </div>
                   <div className="record-actions">
+                    <button
+                      className="btn btn-soft"
+                      onClick={() =>
+                        openEditor("approval", {
+                          id: approval.id,
+                          weddingId: approval.weddingId,
+                          title: approval.title,
+                          owner: approval.owner,
+                          state: approval.state,
+                          dueAt: approval.dueAt
+                        })
+                      }
+                    >
+                      Edit
+                    </button>
                     <button className="btn btn-ghost" onClick={() => onUpsertClientApproval({ ...approval, state: approval.state === "APPROVED" ? "CLIENT_REVIEW" : "APPROVED" })}>Approve</button>
                     <button className="btn btn-danger" onClick={() => onDeleteClientApproval(approval.id)}>Delete</button>
                   </div>
@@ -891,6 +1150,190 @@ export default function Dashboard({
             </div>
           </article>
         </div>
+
+        {editKind ? (
+          <aside className="record-drawer" aria-label="Record detail drawer">
+            <div className="drawer-head">
+              <div>
+                <span className="metric-label">Details</span>
+                <h4>Edit {editKind.replace("_", " ")}</h4>
+              </div>
+              <button className="btn btn-ghost" onClick={closeEditor} aria-label="Close record editor">
+                Close
+              </button>
+            </div>
+
+            {editKind === "vendor" ? (
+              <div className="drawer-grid">
+                <label>
+                  Vendor name
+                  <input value={editDraft.name ?? ""} onChange={(e) => updateEditDraft("name", e.target.value)} />
+                </label>
+                <label>
+                  Category
+                  <select value={editDraft.category ?? "OTHER"} onChange={(e) => updateEditDraft("category", e.target.value)}>
+                    {["CATERING", "DECOR", "PHOTO_VIDEO", "MUSIC", "LOGISTICS", "BEAUTY", "OTHER"].map((value) => (
+                      <option key={value} value={value}>{value.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Owner
+                  <input value={editDraft.owner ?? ""} onChange={(e) => updateEditDraft("owner", e.target.value)} />
+                </label>
+                <label>
+                  Status
+                  <select value={editDraft.status ?? "LEAD"} onChange={(e) => updateEditDraft("status", e.target.value)}>
+                    {["LEAD", "QUOTED", "CONTRACTED", "PAID", "AT_RISK"].map((value) => (
+                      <option key={value} value={value}>{value.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Estimate
+                  <input type="number" value={editDraft.estimate ?? "0"} onChange={(e) => updateEditDraft("estimate", e.target.value)} />
+                </label>
+                <label>
+                  Currency
+                  <input value={editDraft.currency ?? selected.currency} onChange={(e) => updateEditDraft("currency", e.target.value.toUpperCase())} />
+                </label>
+                <label className="drawer-wide">
+                  Notes
+                  <textarea value={editDraft.notes ?? ""} onChange={(e) => updateEditDraft("notes", e.target.value)} />
+                </label>
+              </div>
+            ) : null}
+
+            {editKind === "venue" ? (
+              <div className="drawer-grid">
+                <label>
+                  Venue name
+                  <input value={editDraft.name ?? ""} onChange={(e) => updateEditDraft("name", e.target.value)} />
+                </label>
+                <label>
+                  City
+                  <input value={editDraft.city ?? ""} onChange={(e) => updateEditDraft("city", e.target.value)} />
+                </label>
+                <label>
+                  Country
+                  <input value={editDraft.country ?? ""} onChange={(e) => updateEditDraft("country", e.target.value)} />
+                </label>
+                <label>
+                  Status
+                  <select value={editDraft.status ?? "SHORTLISTED"} onChange={(e) => updateEditDraft("status", e.target.value)}>
+                    {["SHORTLISTED", "HOLD", "CONTRACTED", "PERMIT_PENDING", "READY"].map((value) => (
+                      <option key={value} value={value}>{value.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Capacity
+                  <input type="number" value={editDraft.capacity ?? String(selected.guestTarget)} onChange={(e) => updateEditDraft("capacity", e.target.value)} />
+                </label>
+                <label>
+                  Curfew
+                  <input value={editDraft.curfew ?? "TBD"} onChange={(e) => updateEditDraft("curfew", e.target.value)} />
+                </label>
+                <label className="drawer-wide">
+                  Notes
+                  <textarea value={editDraft.notes ?? ""} onChange={(e) => updateEditDraft("notes", e.target.value)} />
+                </label>
+              </div>
+            ) : null}
+
+            {editKind === "destination" ? (
+              <div className="drawer-grid">
+                <label>
+                  Destination profile
+                  <input value={editDraft.name ?? ""} onChange={(e) => updateEditDraft("name", e.target.value)} />
+                </label>
+                <label>
+                  Region
+                  <input value={editDraft.region ?? "Global"} onChange={(e) => updateEditDraft("region", e.target.value)} />
+                </label>
+                <label>
+                  Travel risk
+                  <select value={editDraft.travelRisk ?? "MEDIUM"} onChange={(e) => updateEditDraft("travelRisk", e.target.value)}>
+                    {["LOW", "MEDIUM", "HIGH"].map((value) => (
+                      <option key={value} value={value}>{value}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="drawer-wide">
+                  Visa notes
+                  <textarea value={editDraft.visaNotes ?? ""} onChange={(e) => updateEditDraft("visaNotes", e.target.value)} />
+                </label>
+                <label>
+                  Weather notes
+                  <textarea value={editDraft.weatherNotes ?? ""} onChange={(e) => updateEditDraft("weatherNotes", e.target.value)} />
+                </label>
+                <label>
+                  Cultural notes
+                  <textarea value={editDraft.culturalNotes ?? ""} onChange={(e) => updateEditDraft("culturalNotes", e.target.value)} />
+                </label>
+              </div>
+            ) : null}
+
+            {editKind === "culture" ? (
+              <div className="drawer-grid">
+                <label>
+                  Checklist item
+                  <input value={editDraft.label ?? ""} onChange={(e) => updateEditDraft("label", e.target.value)} />
+                </label>
+                <label>
+                  Culture or ritual context
+                  <input value={editDraft.culture ?? ""} onChange={(e) => updateEditDraft("culture", e.target.value)} />
+                </label>
+                <label>
+                  Owner
+                  <input value={editDraft.owner ?? ""} onChange={(e) => updateEditDraft("owner", e.target.value)} />
+                </label>
+                <label>
+                  Status
+                  <select value={editDraft.status ?? "TODO"} onChange={(e) => updateEditDraft("status", e.target.value)}>
+                    {["TODO", "IN_PROGRESS", "BLOCKED", "DONE"].map((value) => (
+                      <option key={value} value={value}>{value.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
+
+            {editKind === "approval" ? (
+              <div className="drawer-grid">
+                <label>
+                  Approval title
+                  <input value={editDraft.title ?? ""} onChange={(e) => updateEditDraft("title", e.target.value)} />
+                </label>
+                <label>
+                  Owner
+                  <input value={editDraft.owner ?? ""} onChange={(e) => updateEditDraft("owner", e.target.value)} />
+                </label>
+                <label>
+                  State
+                  <select value={editDraft.state ?? "DRAFT"} onChange={(e) => updateEditDraft("state", e.target.value)}>
+                    {["DRAFT", "CLIENT_REVIEW", "APPROVED", "ESCALATION"].map((value) => (
+                      <option key={value} value={value}>{value.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Due date
+                  <input type="date" value={editDraft.dueAt ?? selected.date} onChange={(e) => updateEditDraft("dueAt", e.target.value)} />
+                </label>
+              </div>
+            ) : null}
+
+            <div className="drawer-actions">
+              <button className="btn btn-primary" onClick={saveEditedRecord} data-testid="save-record-detail">
+                Save details
+              </button>
+              <button className="btn btn-ghost" onClick={closeEditor}>
+                Cancel
+              </button>
+            </div>
+          </aside>
+        ) : null}
       </section>
 
       <section className="grid two equal">

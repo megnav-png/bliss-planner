@@ -5,6 +5,7 @@ dist/
 out/
 *.log
 *.tsbuildinfo
+src/lib/generatedBuildInfo.ts
 .DS_Store
 .env
 .env.*

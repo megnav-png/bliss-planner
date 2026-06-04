@@ -682,6 +682,54 @@ button:disabled {
   font-size: 12px;
 }
 
+.record-drawer {
+  margin-top: 14px;
+  border: 1px solid rgba(24, 73, 67, 0.22);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: 0 22px 55px rgba(24, 73, 67, 0.12);
+  padding: 16px;
+}
+
+.drawer-head,
+.drawer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.drawer-head h4 {
+  margin: 4px 0 0;
+  color: var(--teal-deep);
+  text-transform: capitalize;
+}
+
+.drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.drawer-grid label {
+  min-width: 0;
+}
+
+.drawer-grid textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.drawer-wide {
+  grid-column: 1 / -1;
+}
+
+.drawer-actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
 .impact-grid {
   display: grid;
   gap: 10px;
@@ -963,6 +1011,16 @@ button:disabled {
   font-size: 12px;
   background: #eff7f2;
   color: var(--teal-deep);
+}
+
+.deploy-chip {
+  border: 1px solid rgba(24, 73, 67, 0.24);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #ffffff;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .section-header {
@@ -1293,8 +1351,15 @@ button:disabled {
   }
 
   .crud-grid,
+  .drawer-grid,
   .inline-create {
     grid-template-columns: 1fr;
+  }
+
+  .drawer-head,
+  .drawer-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .record-actions {

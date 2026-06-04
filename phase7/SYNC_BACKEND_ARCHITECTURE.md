@@ -15,7 +15,7 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
    - Prisma with PostgreSQL for device registry, package metadata, sync cursors, and audit records.
    - Object storage such as Cloudflare R2, Google Cloud Storage, or S3 for encrypted snapshot packages.
    - No plaintext wedding, guest, vendor, budget, cultural, or client data is stored server-side.
-   - Prototype command: `BLISS_RELAY_SECRET=dev-secret npm run sync:relay:prototype`.
+   - Prototype command: `BLISS_RELAY_SECRET=dev-secret BLISS_RELAY_TOKEN=dev-token npm run sync:relay:prototype`.
 
 3. **Identity and device continuity**
    - Planner account owns one or more workspaces.
@@ -51,7 +51,9 @@ Bliss Planner remains local-first. Wedding data lives on the planner's device by
 6. Run cloud pilot against two browser profiles and one desktop wrapper profile.
 
 ## Prototype Status
-- `sync-relay/prototype-server.mjs` implements `GET /health`, `POST /sync/push`, and `GET /sync/pull`.
+- `sync-relay/prototype-server.mjs` implements `GET /health`, `POST /devices/pair/start`, `POST /devices/pair/claim`, `POST /sync/push`, `GET /sync/pull`, and `DELETE /sync/workspace`.
 - Payloads are encrypted at rest with AES-256-GCM using `BLISS_RELAY_SECRET`.
-- The prototype is intentionally in-memory. It proves the contract shape and encrypted relay behavior, not production persistence.
-- Production version still needs authenticated workspaces, device registry, token rotation, durable encrypted package storage, and delete-cloud-data flows.
+- Relay records persist to `BLISS_RELAY_STORE` or `/tmp/bliss-planner-sync-relay-store.json`.
+- `BLISS_RELAY_TOKEN` enables bearer-token or `x-bliss-relay-token` auth for all relay endpoints.
+- The dashboard exposes device pairing and delete-cloud-data controls once a relay endpoint is configured.
+- Production version still needs hosted auth, region-aware durable storage, token rotation, device revocation UI, and audit retention policy.
