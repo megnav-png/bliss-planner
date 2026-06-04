@@ -1,4 +1,4 @@
-import { AppState, BudgetLine, GuestGroup, Task } from "./types";
+import { AppState, BudgetLine, CulturalChecklistItem, GuestGroup, ReadinessItem, Task } from "./types";
 
 const budgetLines: BudgetLine[] = [
   { id: "line-venue", category: "Venue", planned: 160000, actual: 96000 },
@@ -48,6 +48,136 @@ const tasks: Task[] = [
   }
 ];
 
+const kyotoReadiness: ReadinessItem[] = [
+  {
+    id: "ready-kyoto-catering",
+    area: "VENDOR",
+    label: "Caterer menu, tastings, and service load",
+    owner: "Operations",
+    status: "WATCH",
+    score: 72,
+    linkedTaskIds: ["task-001"],
+    notes: "Meal diversity and portion planning depend on final RSVP movement."
+  },
+  {
+    id: "ready-kyoto-decor",
+    area: "VENDOR",
+    label: "Decorator and floral contractor scope",
+    owner: "Production",
+    status: "READY",
+    score: 86,
+    linkedTaskIds: [],
+    notes: "Concept lock is ready; install run sheet needs final site timing."
+  },
+  {
+    id: "ready-kyoto-venue",
+    area: "VENUE",
+    label: "Ceremony approvals and venue protocol",
+    owner: "Planner",
+    status: "BLOCKED",
+    score: 58,
+    linkedTaskIds: ["task-002"],
+    notes: "Shinto ceremony protocol is blocking final day plan approval."
+  },
+  {
+    id: "ready-kyoto-destination",
+    area: "DESTINATION",
+    label: "Travel, rooming, and arrival logistics",
+    owner: "Guest Ops",
+    status: "WATCH",
+    score: 69,
+    linkedTaskIds: [],
+    notes: "Rooming estimate changes with guest target and international group counts."
+  }
+];
+
+const kyotoCulture: CulturalChecklistItem[] = [
+  {
+    id: "culture-kyoto-shinto",
+    label: "Confirm shrine etiquette and family procession sequence",
+    culture: "Japanese Shinto",
+    owner: "Planner",
+    status: "BLOCKED",
+    linkedTaskIds: ["task-002"]
+  },
+  {
+    id: "culture-kyoto-meals",
+    label: "Validate vegetarian and seafood menu split",
+    culture: "Japanese and Indian families",
+    owner: "Operations",
+    status: "IN_PROGRESS",
+    linkedTaskIds: ["task-001"]
+  },
+  {
+    id: "culture-kyoto-welcome",
+    label: "Prepare bilingual welcome notes and guest briefing",
+    culture: "Global guests",
+    owner: "Client Experience",
+    status: "TODO",
+    linkedTaskIds: []
+  }
+];
+
+const marrakechReadiness: ReadinessItem[] = [
+  {
+    id: "ready-marrakech-catering",
+    area: "VENDOR",
+    label: "Catering deposit and halal/vegetarian split",
+    owner: "Operations",
+    status: "WATCH",
+    score: 64,
+    linkedTaskIds: [],
+    notes: "Menu lock is pending vendor confirmation."
+  },
+  {
+    id: "ready-marrakech-venue",
+    area: "VENUE",
+    label: "Riad buyout, permits, and sound timing",
+    owner: "Planner",
+    status: "WATCH",
+    score: 67,
+    linkedTaskIds: [],
+    notes: "Permit and curfew notes should move into the day-before run sheet."
+  },
+  {
+    id: "ready-marrakech-destination",
+    area: "DESTINATION",
+    label: "Airport transfers and guest ID pack",
+    owner: "Guest Ops",
+    status: "BLOCKED",
+    score: 52,
+    linkedTaskIds: ["task-003"],
+    notes: "Passport and ID collection gates transfer planning."
+  }
+];
+
+const marrakechCulture: CulturalChecklistItem[] = [
+  {
+    id: "culture-marrakech-welcome",
+    label: "Confirm welcome dinner flow and local host etiquette",
+    culture: "Moroccan destination wedding",
+    owner: "Client Experience",
+    status: "TODO",
+    linkedTaskIds: []
+  },
+  {
+    id: "culture-marrakech-menu",
+    label: "Review halal, vegetarian, and late-night tea service",
+    culture: "Moroccan and European families",
+    owner: "Operations",
+    status: "IN_PROGRESS",
+    linkedTaskIds: []
+  },
+  {
+    id: "culture-marrakech-travel",
+    label: "Share cultural dress, weather, and arrival guidance",
+    culture: "Global guests",
+    owner: "Guest Ops",
+    status: "TODO",
+    linkedTaskIds: ["task-003"]
+  }
+];
+
 export const seedState: AppState = {
   profile: {
     name: "Aster Bellamy",
@@ -86,6 +216,16 @@ export const seedState: AppState = {
       budget: { lines: budgetLines },
       riskLevel: "MEDIUM",
       guestGroups,
+      readinessItems: kyotoReadiness,
+      culturalChecklist: kyotoCulture,
+      clientStatus: {
+        relationshipOwner: "Aster Bellamy",
+        approvalState: "CLIENT_REVIEW",
+        nextClientUpdateAt: "2026-09-22",
+        experienceScore: 82,
+        sentiment: "ENGAGED",
+        pendingDecisions: ["Shrine protocol sign-off", "Final vegetarian count", "Welcome dinner copy"]
+      },
       notes: "Shinto sequence requires ceremonial approvals."
     },
     {
@@ -111,6 +251,16 @@ export const seedState: AppState = {
       guestGroups: [
         { id: "gg-marr-001", name: "Family and close friends", total: 92, vegetarian: 22, standard: 65, seafood: 5, roomNeed: 40 }
       ],
+      readinessItems: marrakechReadiness,
+      culturalChecklist: marrakechCulture,
+      clientStatus: {
+        relationshipOwner: "Aster Bellamy",
+        approvalState: "ESCALATION",
+        nextClientUpdateAt: "2026-12-04",
+        experienceScore: 68,
+        sentiment: "CONCERNED",
+        pendingDecisions: ["Airport transfer ID pack", "Riad sound permit", "Welcome dinner host notes"]
+      },
       notes: "Destination logistics are the highest-risk area."
     }
   ],

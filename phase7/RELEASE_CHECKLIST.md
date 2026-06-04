@@ -19,7 +19,7 @@
      - icon paths
      - OS targets
      - included files (`.next`, `public`, `desktop`, runtime runtime deps)
-   - [ ] App assets copied correctly (`public/icons/wovops-icon-512.png`).
+   - [ ] App assets copied correctly (`public/icons/bliss-planner-icon-512.png`, `public/icons/bliss-planner-mark.svg`).
    - [ ] Release bundle excludes test fixtures, script caches, and logs.
 
 4. **Build + package validation**
@@ -36,6 +36,11 @@
      - version bump
      - known constraints (no cloud sync by default / optional local-first mode)
      - target OS versions.
+
+6. **Optional sync backend gate**
+   - [ ] `phase7/SYNC_BACKEND_ARCHITECTURE.md` reviewed.
+   - [ ] Encrypted package format approved before relay API work begins.
+   - [ ] Device pairing, revocation, retention, and delete-cloud-data flows are scoped.
 
 ## Suggested release order
 1. `npm run phase6:pilot:single`

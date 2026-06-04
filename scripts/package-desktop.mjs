@@ -9,8 +9,8 @@ const projectRoot = process.cwd();
 const profilePath = path.join(projectRoot, "phase7", "desktop-export-profile.json");
 const shellMode = process.platform === "win32";
 
-const ELECTRON_BUILDER = process.env.WOVOPS_ELECTRON_BUILDER || "electron-builder";
-const ALLOW_NPX_FALLBACK = String(process.env.WOVOPS_ALLOW_NPX_PACKAGER || "false").toLowerCase() === "true";
+const ELECTRON_BUILDER = process.env.BLISS_ELECTRON_BUILDER || process.env.WOVOPS_ELECTRON_BUILDER || "electron-builder";
+const ALLOW_NPX_FALLBACK = String(process.env.BLISS_ALLOW_NPX_PACKAGER || process.env.WOVOPS_ALLOW_NPX_PACKAGER || "false").toLowerCase() === "true";
 
 const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 
@@ -58,7 +58,7 @@ if (localBuilder) {
     console.error("electron-builder binary not found locally.");
     console.error("Install dependencies and retry:");
     console.error("npm install -D electron electron-builder");
-    console.error("Or set WOVOPS_ALLOW_NPX_PACKAGER=true and retry to fetch builder remotely.");
+    console.error("Or set BLISS_ALLOW_NPX_PACKAGER=true and retry to fetch builder remotely.");
     process.exit(1);
   }
 

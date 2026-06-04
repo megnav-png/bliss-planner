@@ -1,7 +1,7 @@
 {
-  "appId": "com.wovops.planner",
-  "productName": "WovOpsPlanner",
-  "copyright": "WovOps LLC",
+  "appId": "com.playora.blissplanner",
+  "productName": "BlissPlanner",
+  "copyright": "Playora",
   "directories": {
     "output": "release"
   },
@@ -31,17 +31,17 @@
   ],
   "mac": {
     "category": "public.app-category.productivity",
-    "icon": "public/icons/wovops-icon-512.png",
+    "icon": "public/icons/bliss-planner-icon-512.png",
     "target": ["dmg", "zip"]
   },
   "win": {
     "target": "nsis",
-    "icon": "public/icons/wovops-icon-512.png",
+    "icon": "public/icons/bliss-planner-icon-512.png",
     "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
   },
   "linux": {
     "target": ["AppImage", "tar.gz"],
     "category": "Office",
-    "icon": "public/icons/wovops-icon-512.png"
+    "icon": "public/icons/bliss-planner-icon-512.png"
   }
 }

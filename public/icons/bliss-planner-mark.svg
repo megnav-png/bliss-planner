@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Bliss Planner mark</title>
+  <desc id="desc">A gold circular wedding planning mark inspired by Playora's premium event branding.</desc>
+  <defs>
+    <linearGradient id="gold" x1="18" x2="110" y1="18" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffe5a6" />
+      <stop offset="0.48" stop-color="#d4a246" />
+      <stop offset="1" stop-color="#8f6425" />
+    </linearGradient>
+    <linearGradient id="dark" x1="25" x2="103" y1="18" y2="113" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#16221f" />
+      <stop offset="1" stop-color="#050706" />
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="58" fill="url(#dark)" />
+  <circle cx="64" cy="64" r="52" fill="none" stroke="url(#gold)" stroke-width="5" />
+  <circle cx="64" cy="64" r="31" fill="none" stroke="url(#gold)" stroke-width="4" opacity=".9" />
+  <path d="M43 75c9 13 33 15 43-1 6-10 3-24-8-31-8-5-19-4-26 3-7 7-8 19-2 26 5 7 15 8 21 2 5-4 6-12 2-17-3-4-9-5-13-2" fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-width="7" />
+  <path d="M42 45h14M72 92h16M88 78l11 11 20-24" fill="none" stroke="#fff3ce" stroke-linecap="round" stroke-linejoin="round" stroke-width="6" />
+</svg>

@@ -25,7 +25,7 @@ If Electron is not installed locally, it falls back to `npx electron@latest`.
 To use a custom port:
 ```bash
 cd "/Users/megnav/Documents/Set recorder"
-WOVOPS_APP_HOST=127.0.0.1 WOVOPS_APP_PORT=3030 npm run phase7:desktop:launch
+BLISS_APP_HOST=127.0.0.1 BLISS_APP_PORT=3030 npm run phase7:desktop:launch
 ```
 
 ## Production package
@@ -49,13 +49,13 @@ npm run phase7:desktop:package
 
 If you need a one-off network fallback, set:
 ```bash
-WOVOPS_ALLOW_NPX_PACKAGER=true npm run phase7:desktop:package
+BLISS_ALLOW_NPX_PACKAGER=true npm run phase7:desktop:package
 ```
 
 To pin electron-builder version or pass a different package wrapper:
 ```bash
 cd "/Users/megnav/Documents/Set recorder"
-WOVOPS_ELECTRON_BUILDER="electron-builder@24.13.3" npm run phase7:desktop:package
+BLISS_ELECTRON_BUILDER="electron-builder@24.13.3" npm run phase7:desktop:package
 ```
 
 ## Installer outputs
@@ -64,7 +64,7 @@ WOVOPS_ELECTRON_BUILDER="electron-builder@24.13.3" npm run phase7:desktop:packag
 - Linux: `.AppImage`, `.tar.gz`
 
 Artifacts are created in:
-- `release/WovOpsPlanner-...` and `WovOpsPlanner-...`
+- `release/BlissPlanner-...` and `BlissPlanner-...`
 
 ## Notes for your first release
 - For internal pilot, keep signing off and distribute the `.dmg`/`.exe` directly.

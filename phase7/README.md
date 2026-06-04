@@ -11,6 +11,8 @@ This phase introduces a desktop execution wrapper and formal release path.
   Builds web artifacts and runs `electron-builder` using the export profile.
 - **Export profile** (`phase7/desktop-export-profile.json`)  
   Defines package IDs, output targets, icons, artifact names, and OS targets.
+- **Sync backend architecture** (`phase7/SYNC_BACKEND_ARCHITECTURE.md`)  
+  Defines the optional encrypted relay approach for cross-device continuity without storing readable planner data.
 - **Release/Install docs** (`phase7/INSTALL_DESKTOP.md`, `phase7/RELEASE_CHECKLIST.md`)
 
 ## Quick commands

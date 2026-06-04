@@ -19,14 +19,14 @@ function resolveElectronBinary() {
   return null;
 }
 
-const host = process.env.WOVOPS_APP_HOST || "127.0.0.1";
-const port = process.env.WOVOPS_APP_PORT || "3002";
+const host = process.env.BLISS_APP_HOST || process.env.WOVOPS_APP_HOST || "127.0.0.1";
+const port = process.env.BLISS_APP_PORT || process.env.WOVOPS_APP_PORT || "3002";
 
 const env = {
   ...process.env,
-  WOVOPS_APP_HOST: host,
-  WOVOPS_APP_PORT: port,
-  WOVOPS_DESKTOP_START_SERVER: process.env.WOVOPS_DESKTOP_START_SERVER || "true"
+  BLISS_APP_HOST: host,
+  BLISS_APP_PORT: port,
+  BLISS_DESKTOP_START_SERVER: process.env.BLISS_DESKTOP_START_SERVER || process.env.WOVOPS_DESKTOP_START_SERVER || "true"
 };
 
 const electronBinary = resolveElectronBinary();

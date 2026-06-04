@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AppState, ImpactRow } from "@/lib/types";
+import { AppState, ImpactRow, ReadinessArea } from "@/lib/types";
 import { SyncDiagnostics, SyncImportResult, SyncRunSummary } from "@/lib/syncEngine";
 import ConnectivityBanner from "@/components/ConnectivityBanner";
 import {
@@ -63,6 +63,12 @@ function tableStatusClass(value: string) {
   return `pill ${value.toLowerCase()}`;
 }
 
+const readinessLabels: Record<ReadinessArea, string> = {
+  VENDOR: "Vendor readiness",
+  VENUE: "Venue readiness",
+  DESTINATION: "Destination readiness"
+};
+
 export default function Dashboard({
   state,
   onGuestTargetChange,
@@ -116,6 +122,14 @@ export default function Dashboard({
 
   const totalRoomsNeed = selected.guestGroups.reduce((sum, g) => sum + g.roomNeed, 0);
   const totalGroups = selected.guestGroups.reduce((sum, g) => sum + g.total, 0);
+  const readinessGroups = (["VENDOR", "VENUE", "DESTINATION"] as ReadinessArea[]).map((area) => {
+    const items = selected.readinessItems.filter((item) => item.area === area);
+    const score = items.length > 0 ? Math.round(items.reduce((sum, item) => sum + item.score, 0) / items.length) : 0;
+    return { area, label: readinessLabels[area], items, score };
+  });
+  const cultureDone = selected.culturalChecklist.filter((item) => item.status === "DONE").length;
+  const cultureProgress =
+    selected.culturalChecklist.length > 0 ? (cultureDone / selected.culturalChecklist.length) * 100 : 0;
 
   const impactRows: ImpactRow[] = [
     {
@@ -320,6 +334,7 @@ export default function Dashboard({
     getFilteredRowModel: getFilteredRowModel(),
     autoResetAll: false
   });
+  const visibleTaskRows = table.getRowModel().rows;
 
   return (
     <main className="app-shell dashboard-shell">
@@ -333,7 +348,7 @@ export default function Dashboard({
           <div className="dashboard-cta-row">
             <a href={productHome} className="btn btn-brand" aria-label="Open Bliss Planner">
               <span className="brand-mark" aria-hidden="true">
-                <img src="/icons/bliss-planner-icon-192.png" alt="" />
+                <img src="/icons/bliss-planner-mark.svg" alt="" />
               </span>
               Open product
             </a>
@@ -568,6 +583,37 @@ export default function Dashboard({
         </article>
       </section>
 
+      <section className="grid three readiness-grid" aria-label="Wedding readiness modules">
+        {readinessGroups.map((group) => (
+          <article key={group.area} className="panel card readiness-card">
+            <div className="readiness-head">
+              <div>
+                <span className="metric-label">{group.area.toLowerCase()}</span>
+                <h3>{group.label}</h3>
+              </div>
+              <strong>{group.score}%</strong>
+            </div>
+            <div className="mini-meter" aria-hidden="true">
+              <span style={{ width: `${Math.min(100, group.score)}%` }} />
+            </div>
+            <div className="readiness-list">
+              {group.items.map((item) => (
+                <div key={item.id} className="readiness-row">
+                  <div>
+                    <strong>{item.label}</strong>
+                    <p>{item.notes}</p>
+                    <small>
+                      {item.owner} · {item.linkedTaskIds.length} linked task{item.linkedTaskIds.length === 1 ? "" : "s"}
+                    </small>
+                  </div>
+                  <span className={`pill readiness-${item.status.toLowerCase()}`}>{item.status}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </section>
+
       <section className="grid two equal">
         <article className="panel card">
           <h3>Live planning impact</h3>
@@ -613,6 +659,64 @@ export default function Dashboard({
             <strong>{Math.round(selected.guestTarget * 2.2)} portions</strong>
             <span>Rooming</span>
             <strong>{Math.round(selected.guestTarget * 0.45)} rooms</strong>
+          </div>
+        </article>
+      </section>
+
+      <section className="grid two equal">
+        <article className="panel card client-summary-card">
+          <div className="section-header">
+            <div>
+              <h3>Client status summary</h3>
+              <p className="note">For the next client update and approval conversation.</p>
+            </div>
+            <span className={statusClass(selected.clientStatus.approvalState)}>
+              {selected.clientStatus.approvalState.replace("_", " ")}
+            </span>
+          </div>
+          <div className="client-score">
+            <strong>{selected.clientStatus.experienceScore}</strong>
+            <span>experience score</span>
+          </div>
+          <div className="impact-summary">
+            <span>Owner</span>
+            <strong>{selected.clientStatus.relationshipOwner}</strong>
+            <span>Next update</span>
+            <strong>{formatDate(selected.clientStatus.nextClientUpdateAt, state.settings.timezone)}</strong>
+            <span>Sentiment</span>
+            <strong>{selected.clientStatus.sentiment}</strong>
+            <span>Risk</span>
+            <strong>{selected.riskLevel}</strong>
+          </div>
+          <div className="decision-list">
+            {selected.clientStatus.pendingDecisions.map((decision) => (
+              <span key={decision}>{decision}</span>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel card cultural-card">
+          <div className="section-header">
+            <div>
+              <h3>Cultural checklist</h3>
+              <p className="note">{cultureDone}/{selected.culturalChecklist.length} items complete.</p>
+            </div>
+            <strong>{Math.round(cultureProgress)}%</strong>
+          </div>
+          <div className="mini-meter" aria-hidden="true">
+            <span style={{ width: `${Math.min(100, cultureProgress)}%` }} />
+          </div>
+          <div className="culture-list">
+            {selected.culturalChecklist.map((item) => (
+              <div key={item.id} className="culture-row">
+                <span className={`culture-check ${item.status === "DONE" ? "checked" : ""}`} aria-hidden="true" />
+                <div>
+                  <strong>{item.label}</strong>
+                  <p>{item.culture} · {item.owner} · {item.linkedTaskIds.length} linked task{item.linkedTaskIds.length === 1 ? "" : "s"}</p>
+                </div>
+                <span className={tableStatusClass(item.status.toLowerCase())}>{item.status}</span>
+              </div>
+            ))}
           </div>
         </article>
       </section>
@@ -712,7 +816,7 @@ export default function Dashboard({
                 ))}
               </thead>
               <tbody>
-                {table.getRowModel().rows.map((row) => (
+                {visibleTaskRows.map((row) => (
                   <tr key={row.id}>
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id}>
@@ -725,7 +829,41 @@ export default function Dashboard({
                 ))}
               </tbody>
             </table>
-            {table.getRowModel().rows.length === 0 ? <p className="note">No matching tasks for this wedding.</p> : null}
+            {visibleTaskRows.length === 0 ? <p className="note">No matching tasks for this wedding.</p> : null}
+          </div>
+          <div className="task-card-list" aria-label="Task cards">
+            {visibleTaskRows.map((row) => {
+              const task = row.original;
+              return (
+                <article key={task.id} className="task-card-row">
+                  <div className="task-card-head">
+                    <strong>{task.title}</strong>
+                    <span className={tableStatusClass(task.priority.toLowerCase())}>{task.priority}</span>
+                  </div>
+                  <div className="task-card-meta">
+                    <span>{task.owner}</span>
+                    <span>{formatDate(task.dueAt, selected.timezone)}</span>
+                  </div>
+                  <div className="task-card-impacts">
+                    {task.impacts.map((impact) => (
+                      <span key={impact}>{impact}</span>
+                    ))}
+                  </div>
+                  <div className="task-card-foot">
+                    <span className={tableStatusClass(task.status.toLowerCase())}>{task.status}</span>
+                    <button
+                      onClick={() => onTaskStatusChange(task.id)}
+                      className="btn btn-soft"
+                      disabled={isLoadingTasks}
+                      data-testid="mobile-task-action"
+                    >
+                      {task.status === "DONE" ? "Undo" : "Mark done"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+            {visibleTaskRows.length === 0 ? <p className="note">No matching tasks for this wedding.</p> : null}
           </div>
         </article>
       </section>

@@ -4,10 +4,10 @@ const path = require("path");
 const fs = require("fs");
 
 const projectRoot = path.resolve(__dirname, "..");
-const host = process.env.WOVOPS_APP_HOST || "127.0.0.1";
-const port = Number(process.env.WOVOPS_APP_PORT || "3002");
-const appUrl = process.env.WOVOPS_APP_URL || `http://${host}:${port}`;
-const shouldStartServer = String(process.env.WOVOPS_DESKTOP_START_SERVER || "true").toLowerCase() !== "false";
+const host = process.env.BLISS_APP_HOST || process.env.WOVOPS_APP_HOST || "127.0.0.1";
+const port = Number(process.env.BLISS_APP_PORT || process.env.WOVOPS_APP_PORT || "3002");
+const appUrl = process.env.BLISS_APP_URL || process.env.WOVOPS_APP_URL || `http://${host}:${port}`;
+const shouldStartServer = String(process.env.BLISS_DESKTOP_START_SERVER || process.env.WOVOPS_DESKTOP_START_SERVER || "true").toLowerCase() !== "false";
 const nextBin = path.join(projectRoot, "node_modules", "next", "dist", "bin", "next");
 const nextOutput = path.join(projectRoot, ".next");
 
@@ -83,7 +83,7 @@ function startNextServer() {
 }
 
 function createWindow() {
-  const icon = path.join(projectRoot, "public", "icons", "wovops-icon-512.png");
+  const icon = path.join(projectRoot, "public", "icons", "bliss-planner-icon-512.png");
 
   const mainWindow = new BrowserWindow({
     width: 1320,
@@ -91,8 +91,8 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 720,
     icon: fs.existsSync(icon) ? icon : undefined,
-    title: "WovOps Planner Dashboard",
-    backgroundColor: "#0f1424",
+    title: "Bliss Planner",
+    backgroundColor: "#080c0b",
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false

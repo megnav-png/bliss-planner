@@ -5,6 +5,9 @@ export type WeddingStatus = "PLANNING" | "IN_PROGRESS" | "READY" | "CLIENT_REVIE
 export type Priority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "BLOCKED" | "DONE";
 export type ImpactArea = "GUESTS" | "BUDGET" | "VENDORS" | "TIMELINE" | "LOGISTICS" | "RISK" | "CLIENT";
+export type ReadinessArea = "VENDOR" | "VENUE" | "DESTINATION";
+export type ReadinessStatus = "READY" | "WATCH" | "BLOCKED";
+export type ClientApprovalState = "DRAFT" | "CLIENT_REVIEW" | "APPROVED" | "ESCALATION";
 
 export interface PlannerSettings {
   baseCurrency: string;
@@ -62,6 +65,35 @@ export interface Task {
   impacts: ImpactArea[];
 }
 
+export interface ReadinessItem {
+  id: string;
+  area: ReadinessArea;
+  label: string;
+  owner: string;
+  status: ReadinessStatus;
+  score: number;
+  linkedTaskIds: string[];
+  notes: string;
+}
+
+export interface CulturalChecklistItem {
+  id: string;
+  label: string;
+  culture: string;
+  owner: string;
+  status: TaskStatus;
+  linkedTaskIds: string[];
+}
+
+export interface ClientStatusSummary {
+  relationshipOwner: string;
+  approvalState: ClientApprovalState;
+  nextClientUpdateAt: string;
+  experienceScore: number;
+  sentiment: "CALM" | "ENGAGED" | "CONCERNED";
+  pendingDecisions: string[];
+}
+
 export interface Wedding {
   id: string;
   title: string;
@@ -77,6 +109,9 @@ export interface Wedding {
   budget: Budget;
   riskLevel: "LOW" | "MEDIUM" | "HIGH";
   guestGroups: GuestGroup[];
+  readinessItems: ReadinessItem[];
+  culturalChecklist: CulturalChecklistItem[];
+  clientStatus: ClientStatusSummary;
   notes: string;
 }
 
