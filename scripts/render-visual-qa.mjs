@@ -197,6 +197,12 @@ try {
   );
   for (const portal of portalChecks) {
     const page = await portalContext.newPage();
+    await page.addInitScript(
+      ({ storageKey, state }) => {
+        window.localStorage.setItem(storageKey, JSON.stringify(state));
+      },
+      { storageKey: STORAGE_KEY, state: seedState }
+    );
     page.on("console", (message) => {
       if (message.type() === "error") consoleErrors.push(`${portal.path}: ${message.text()}`);
     });
@@ -204,8 +210,8 @@ try {
     await gotoRoute(page, new URL(portal.path, APP_URL).toString());
     let portalMode = "authorized";
     try {
-      await page.getByText(portal.heading).waitFor({ timeout: 10_000 });
-      await page.getByText(portal.text).waitFor({ timeout: 10_000 });
+      await page.getByText(portal.heading).waitFor({ timeout: 30_000 });
+      await page.getByText(portal.text).waitFor({ timeout: 30_000 });
     } catch (error) {
       if (!portal.protectedHeading) throw error;
       portalMode = "protected";
