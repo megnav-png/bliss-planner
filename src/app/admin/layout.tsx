@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           <h1>{access.reason === "LOGIN_REQUIRED" ? "Sign in required" : "Admin access required"}</h1>
           <p className="note">Admin monitoring is available to authenticated workspace owners, planners, and production leads.</p>
           <div className="row-actions">
-            <Link href={access.auth.loginUrl} className="btn btn-brand">Sign in</Link>
+            <Link href={access.auth.loginUrl} className="btn btn-brand" prefetch={false}>Sign in</Link>
             <Link href="/" className="btn btn-soft">Planner dashboard</Link>
           </div>
         </section>

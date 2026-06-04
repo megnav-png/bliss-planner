@@ -15,7 +15,7 @@ export default async function VendorPortalPage() {
           <h1>{access.reason === "LOGIN_REQUIRED" ? "Sign in required" : "Vendor portal access required"}</h1>
           <p>This view is only available to invited vendors or workspace planners.</p>
           <div className="row-actions">
-            <Link href={auth.loginUrl} className="btn btn-brand">Sign in</Link>
+            <Link href={auth.loginUrl} className="btn btn-brand" prefetch={false}>Sign in</Link>
             <Link href="/" className="btn btn-soft">Planner dashboard</Link>
           </div>
         </section>
